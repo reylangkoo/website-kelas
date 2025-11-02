@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Abaikan file konfigurasi rahasia
+app/config/*.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

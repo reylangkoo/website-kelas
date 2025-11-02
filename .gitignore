@@ -44,3 +44,4 @@ app/config/*.json
 next-env.d.ts
 
 /lib/generated/prisma
+"/lib/firebaseConfig.ts" 

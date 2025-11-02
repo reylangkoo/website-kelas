@@ -1,0 +1,16 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // kalau kamu mau PostgreSQL, ubah ke "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Photo {
+  id          String   @id @default(cuid())
+  driveId     String
+  name        String
+  src         String
+  uploadedAt  DateTime @default(now())
+}

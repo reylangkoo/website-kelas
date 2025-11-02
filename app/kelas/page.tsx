@@ -17,6 +17,7 @@ interface ScheduleItem {
   time: string
   course: string
   room: string
+  day: string
 }
 
 interface ForumMessage {
@@ -33,12 +34,47 @@ const MOCK_DATA = {
     { id: 1, title: "Tugas Algoritma", due: "2 jam lagi", course: "Algoritma & Pemrograman" },
     { id: 2, title: "Essay Pendidikan", due: "Besok", course: "Filsafat Pendidikan" },
   ] as Task[],
-  schedule: [
-    { time: "08:00", course: "Sistem Keamanan Informasi", room: "Ruang PI-2" },
-    { time: "10:00", course: "Kecerdasan Buatan", room: "Ruang PI-1" },
-    { time: "13:00", course: "Mobile Learning", room: "Ruang PI-2" }
-  ] as ScheduleItem[]
 }
+
+// Data jadwal kuliah sesuai permintaan
+const SCHEDULE_DATA: ScheduleItem[] = [
+  { 
+    time: "08:00-10:00", 
+    course: "Sistem Keamanan Informasi", 
+    room: "Ruang PI-2",
+    day: "Senin"
+  },
+  { 
+    time: "08:00-10:00", 
+    course: "Kecerdasan Buatan", 
+    room: "Ruang PI-1",
+    day: "Selasa"
+  },
+  { 
+    time: "13:00-15:00", 
+    course: "Mobile Learning", 
+    room: "Ruang PI-2",
+    day: "Selasa"
+  },
+  { 
+    time: "13:00-16:00", 
+    course: "Pengembangan Media dan Game", 
+    room: "Ruang PI-1",
+    day: "Rabu"
+  },
+  { 
+    time: "13:00-15:00", 
+    course: "Pengembangan Bahan Ajar", 
+    room: "Lab. Kom",
+    day: "Kamis"
+  },
+  { 
+    time: "07:00-Selesai", 
+    course: "Pemrograman Web", 
+    room: "Ruang PI-3",
+    day: "Jumat"
+  }
+]
 
 // Firebase simulation untuk forum messages
 let forumMessages: ForumMessage[] = []
@@ -62,12 +98,7 @@ const forumSimulation = {
 }
 
 export default function Dashboard() {
-  const [nama] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem("namaUser") || "Mahasiswa"
-    }
-    return "Mahasiswa"
-  })
+  const [nama, setNama] = useState("Mahasiswa")
   const [currentTime, setCurrentTime] = useState("")
   const [activeHover, setActiveHover] = useState<number | null>(null)
   const [tasks] = useState<Task[]>(MOCK_DATA.tasks)
@@ -76,36 +107,50 @@ export default function Dashboard() {
   const [newForumMessages, setNewForumMessages] = useState(0)
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackMessage, setFeedbackMessage] = useState("")
+  const [isClient, setIsClient] = useState(false)
+  const [todaySchedule, setTodaySchedule] = useState<ScheduleItem[]>([])
 
   useEffect(() => {
+    setIsClient(true)
+    
+    // Ambil nama dari localStorage
+    const storedName = localStorage.getItem("namaUser") || "Mahasiswa"
+    setNama(storedName)
+
     // Update waktu real-time
     const updateTime = () => {
       const now = new Date()
-      setCurrentTime(now.toLocaleTimeString('id-ID', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit'
+      setCurrentTime(now.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
       }))
     }
-    
+
     updateTime()
     const interval = setInterval(updateTime, 1000)
 
-    // Subscribe to forum messages
+    // Set jadwal hari ini
+    const today = new Date().toLocaleDateString('id-ID', { weekday: 'long' })
+    const filtered = SCHEDULE_DATA.filter(item => 
+      item.day.toLowerCase() === today.toLowerCase()
+    )
+    setTodaySchedule(filtered)
+
+    // Subscribe ke forum messages
     const unsubscribe = forumSimulation.subscribe((messages) => {
-      const newMsgs = messages.filter(msg => msg.isNew).length
+      const newMsgs = messages.filter((msg) => msg.isNew).length
       setNewForumMessages(newMsgs)
     })
 
-    // Simulate receiving new forum messages
     const forumInterval = setInterval(() => {
-      if (Math.random() > 0.7) { // 30% chance every 10 seconds
+      if (Math.random() > 0.7) {
         const newMsg: ForumMessage = {
           id: Date.now(),
           user: "Teman Kelas",
           message: "Ada yang bisa bantu tugas ini?",
           timestamp: new Date(),
-          isNew: true
+          isNew: true,
         }
         forumSimulation.addMessage(newMsg)
       }
@@ -132,27 +177,39 @@ export default function Dashboard() {
     showCustomFeedback("Pesan forum ditandai sudah dibaca")
   }
 
+  const handleTotalMataKuliah = () => {
+    showCustomFeedback("Membuka daftar mata kuliah")
+  }
+
+  const handleTugasMendatang = () => {
+    showCustomFeedback("Developer masih capek 😴")
+  }
+
+  const handleKehadiran = () => {
+    showCustomFeedback("Developer masih capek 😴")
+  }
+
   const stats = [
     { 
       label: "Total Mata Kuliah", 
-      value: "12", 
+      value: "6", 
       icon: BookOpen, 
-      change: "+2",
-      onClick: () => showCustomFeedback("Membuka daftar mata kuliah")
+      change: "+0",
+      onClick: handleTotalMataKuliah
     },
     { 
       label: "Tugas Mendatang", 
       value: tasks.length.toString(), 
       icon: Target, 
       change: `${tasks.filter(t => t.due.includes('jam') || t.due.includes('Besok')).length} urgent`,
-      onClick: () => setActiveHover(0)
+      onClick: handleTugasMendatang
     },
     { 
       label: "Kehadiran", 
       value: "94%", 
       icon: TrendingUp, 
       change: "+2%",
-      onClick: () => showCustomFeedback("Melihat detail kehadiran")
+      onClick: handleKehadiran
     },
     { 
       label: "Diskusi Aktif", 
@@ -184,6 +241,18 @@ export default function Dashboard() {
       localStorage.removeItem("namaUser")
       window.location.href = "/"
     }, 1500)
+  }
+
+  // Tampilkan loading sampai client siap
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-purple-300">Memuat dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -246,7 +315,7 @@ export default function Dashboard() {
         >
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 mb-6 lg:mb-8">
             {/* Title Section */}
-            <div className="text-center lg:text-left order-1 lg:order-1">
+            <div className="text-center lg:text-left order-1 lg:order-1 flex-1">
               <motion.div
                 className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 lg:gap-4 mb-3 lg:mb-4"
                 whileHover={{ scale: 1.02 }}
@@ -261,7 +330,7 @@ export default function Dashboard() {
                     } rounded-full`}
                   />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h1 className={`text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r ${
                     darkMode 
                       ? 'from-purple-400 via-pink-400 to-cyan-400' 
@@ -306,24 +375,24 @@ export default function Dashboard() {
               </motion.div>
             </div>
 
-            {/* Quick Stats - Responsif */}
+            {/* Quick Stats - Responsif - PERBAIKAN DI SINI */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.7 }}
-              className="flex justify-center lg:justify-end order-2 lg:order-2 w-full lg:w-auto"
+              className="flex justify-end order-2 lg:order-2 w-full lg:w-auto"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex gap-2 lg:gap-3">
+              <div className="flex gap-2 lg:gap-3 w-full lg:w-auto justify-end">
                 {quickActions.map((action, index) => (
                   <motion.button
                     key={index}
                     whileHover={{ scale: 1.05, y: -2 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={action.onClick}
-                    className={`bg-gradient-to-br ${action.color} rounded-xl lg:rounded-2xl p-3 lg:p-4 text-center min-w-[80px] lg:min-w-[100px] backdrop-blur-md border border-white/10 cursor-pointer shadow-lg`}
+                    className={`bg-gradient-to-br ${action.color} rounded-xl lg:rounded-2xl p-3 lg:p-4 text-center min-w-[70px] lg:min-w-[90px] backdrop-blur-md border border-white/10 cursor-pointer shadow-lg ml-auto sm:ml-0 lg:ml-auto`}
                   >
-                    <action.icon className="w-5 h-5 lg:w-6 lg:h-6 text-white mx-auto mb-1 lg:mb-2" />
-                    <div className="text-lg lg:text-2xl font-bold text-white">{action.count}</div>
+                    <action.icon className="w-4 h-4 lg:w-5 lg:h-5 text-white mx-auto mb-1 lg:mb-2" />
+                    <div className="text-base lg:text-xl font-bold text-white">{action.count}</div>
                     <div className="text-xs text-white/80 leading-tight">{action.label}</div>
                   </motion.button>
                 ))}
@@ -395,27 +464,35 @@ export default function Dashboard() {
               }`}>{new Date().toLocaleDateString('id-ID', { weekday: 'long' })}</span>
             </div>
             <div className="space-y-2 lg:space-y-3">
-              {MOCK_DATA.schedule.map((item, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{ scale: 1.02 }}
-                  className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg ${
-                    darkMode ? 'bg-white/5' : 'bg-black/5'
-                  } gap-2`}
-                >
-                  <div className="flex-1">
-                    <div className={`font-semibold text-sm lg:text-base ${
-                      darkMode ? 'text-white' : 'text-black'
-                    }`}>{item.course}</div>
-                    <div className={`text-xs lg:text-sm ${
-                      darkMode ? 'text-purple-300' : 'text-purple-600'
-                    }`}>{item.room}</div>
-                  </div>
-                  <div className={`text-sm font-mono ${
-                    darkMode ? 'text-cyan-400' : 'text-cyan-600'
-                  }`}>{item.time}</div>
-                </motion.div>
-              ))}
+              {todaySchedule.length > 0 ? (
+                todaySchedule.map((item, index) => (
+                  <motion.div
+                    key={index}
+                    whileHover={{ scale: 1.02 }}
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg ${
+                      darkMode ? 'bg-white/5' : 'bg-black/5'
+                    } gap-2`}
+                  >
+                    <div className="flex-1">
+                      <div className={`font-semibold text-sm lg:text-base ${
+                        darkMode ? 'text-white' : 'text-black'
+                      }`}>{item.course}</div>
+                      <div className={`text-xs lg:text-sm ${
+                        darkMode ? 'text-purple-300' : 'text-purple-600'
+                      }`}>{item.room}</div>
+                    </div>
+                    <div className={`text-sm font-mono ${
+                      darkMode ? 'text-cyan-400' : 'text-cyan-600'
+                    }`}>{item.time}</div>
+                  </motion.div>
+                ))
+              ) : (
+                <div className={`text-center py-4 ${
+                  darkMode ? 'text-purple-300/70' : 'text-purple-600/70'
+                }`}>
+                  Tidak ada jadwal kuliah hari ini 🎉
+                </div>
+              )}
             </div>
           </div>
         </motion.section>
@@ -516,13 +593,13 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="max-w-7xl mx-auto mt-8 lg:mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 lg:gap-4"
+          className="max-w-7xl mx-auto mt-8 lg:mt-12 flex items-center justify-between gap-3 lg:gap-4"
         >
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleLogout}
-            className="group flex items-center gap-2 lg:gap-3 bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-400/30 px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-300 text-purple-200 hover:text-red-300 backdrop-blur-md text-sm lg:text-base"
+            className="group flex items-center gap-2 lg:gap-3 bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-400/30 px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-300 text-purple-200 hover:text-red-300 backdrop-blur-md text-sm lg:text-base flex-1 max-w-[48%] justify-center"
           >
             <LogOut className="w-4 h-4 lg:w-5 lg:h-5 group-hover:rotate-180 transition-transform" />
             <span className="font-semibold">Keluar Kelas</span>
@@ -532,7 +609,7 @@ export default function Dashboard() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowSettings(true)}
-            className="group flex items-center gap-2 lg:gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-300 text-purple-200 hover:text-white backdrop-blur-md text-sm lg:text-base"
+            className="group flex items-center gap-2 lg:gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-300 text-purple-200 hover:text-white backdrop-blur-md text-sm lg:text-base flex-1 max-w-[48%] justify-center"
           >
             <Settings className="w-4 h-4 lg:w-5 lg:h-5 group-hover:rotate-90 transition-transform" />
             <span className="font-semibold">Pengaturan</span>
@@ -638,10 +715,11 @@ export default function Dashboard() {
             <p className={`text-xs lg:text-sm ${
               darkMode ? 'text-purple-300/60' : 'text-purple-600/60'
             }`}>
-              Dashboard Kelas PI23A • Pendidikan Informatika FKIP 2023 • 
+              Build by Rey Langko • Pendidikan Informatika FKIP 2023 • 
               <span className={`ml-1 ${
                 darkMode ? 'text-cyan-400' : 'text-cyan-600'
               }`}>v2.0 Connected</span>
+              <span className="ml-2 text-xs opacity-50">✨💻</span>
             </p>
           </div>
         </motion.div>

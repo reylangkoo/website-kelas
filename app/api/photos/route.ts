@@ -12,3 +12,25 @@ export async function GET() {
     return NextResponse.json({ success: false, error: "Failed to fetch photos" }, { status: 500 });
   }
 }
+
+// 🟢 Tambahkan ini:
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { driveId, name, src } = body;
+
+    // Simpan ke database Neon (PostgreSQL)
+    const newPhoto = await prisma.photo.create({
+      data: {
+        driveId,
+        name,
+        src,
+      },
+    });
+
+    return NextResponse.json({ success: true, photo: newPhoto });
+  } catch (error) {
+    console.error("Error uploading photo:", error);
+    return NextResponse.json({ success: false, error: "Failed to upload photo" }, { status: 500 });
+  }
+}

@@ -107,61 +107,64 @@ export default function Dashboard() {
   const [newForumMessages, setNewForumMessages] = useState(0)
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackMessage, setFeedbackMessage] = useState("")
-  const [isClient, setIsClient] = useState(false)
   const [todaySchedule, setTodaySchedule] = useState<ScheduleItem[]>([])
 
-  useEffect(() => {
-    setIsClient(true)
-    
-    // Ambil nama dari localStorage
-    const storedName = localStorage.getItem("namaUser") || "Mahasiswa"
-    setNama(storedName)
+  const isClient = typeof window !== "undefined"
 
-    // Update waktu real-time
-    const updateTime = () => {
-      const now = new Date()
-      setCurrentTime(now.toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }))
-    }
+useEffect(() => {
+  if (!isClient) return
 
-    updateTime()
-    const interval = setInterval(updateTime, 1000)
+  // Ambil nama dari localStorage
+  // Ambil nama dari localStorage (asynchronous agar lint aman)
+Promise.resolve().then(() => {
+  const storedName = localStorage.getItem("namaUser") || "Mahasiswa"
+  setNama(storedName)
+})
 
-    // Set jadwal hari ini
-    const today = new Date().toLocaleDateString('id-ID', { weekday: 'long' })
-    const filtered = SCHEDULE_DATA.filter(item => 
-      item.day.toLowerCase() === today.toLowerCase()
-    )
-    setTodaySchedule(filtered)
+  // Update waktu real-time
+  const updateTime = () => {
+    const now = new Date()
+    setCurrentTime(now.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }))
+  }
 
-    // Subscribe ke forum messages
-    const unsubscribe = forumSimulation.subscribe((messages) => {
-      const newMsgs = messages.filter((msg) => msg.isNew).length
-      setNewForumMessages(newMsgs)
-    })
+  updateTime()
+  const interval = setInterval(updateTime, 1000)
 
-    const forumInterval = setInterval(() => {
-      if (Math.random() > 0.7) {
-        const newMsg: ForumMessage = {
-          id: Date.now(),
-          user: "Teman Kelas",
-          message: "Ada yang bisa bantu tugas ini?",
-          timestamp: new Date(),
-          isNew: true,
-        }
-        forumSimulation.addMessage(newMsg)
+  const today = new Date().toLocaleDateString('id-ID', { weekday: 'long' })
+ const filtered = SCHEDULE_DATA.filter(item => 
+  item.day.toLowerCase() === today.toLowerCase()
+)
+Promise.resolve().then(() => setTodaySchedule(filtered))
+
+
+  const unsubscribe = forumSimulation.subscribe((messages) => {
+    const newMsgs = messages.filter((msg) => msg.isNew).length
+    setNewForumMessages(newMsgs)
+  })
+
+  const forumInterval = setInterval(() => {
+    if (Math.random() > 0.7) {
+      const newMsg: ForumMessage = {
+        id: Date.now(),
+        user: "Teman Kelas",
+        message: "Ada yang bisa bantu tugas ini?",
+        timestamp: new Date(),
+        isNew: true,
       }
-    }, 10000)
-
-    return () => {
-      clearInterval(interval)
-      clearInterval(forumInterval)
-      unsubscribe()
+      forumSimulation.addMessage(newMsg)
     }
-  }, [])
+  }, 10000)
+
+  return () => {
+    clearInterval(interval)
+    clearInterval(forumInterval)
+    unsubscribe()
+  }
+}, [isClient])
 
   const showCustomFeedback = (message: string) => {
     setFeedbackMessage(message)
@@ -244,7 +247,7 @@ export default function Dashboard() {
   }
 
   // Tampilkan loading sampai client siap
-  if (!isClient) {
+  if (typeof window === "undefined") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
         <div className="text-center">

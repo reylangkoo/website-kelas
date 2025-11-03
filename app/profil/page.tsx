@@ -42,7 +42,7 @@ if (!isClient) {
       nim: "237111024",
       role: "Ketua Kelas",
       hobi: "Ngoding & Desain",
-      foto: "/assets/rey.jpg",
+      foto: "/assets/rey.JPG",
       quote: "Code today, lead tomorrow 💻",
       socials: {
         instagram: "@hyugaa_r",

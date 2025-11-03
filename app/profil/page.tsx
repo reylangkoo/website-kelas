@@ -42,12 +42,12 @@ if (!isClient) {
       nim: "237111024",
       role: "Ketua Kelas",
       hobi: "Ngoding & Desain",
-      foto: "/assets/rey.JPG",
+      foto: "/assets/rey.jpg",
       quote: "Code today, lead tomorrow 💻",
       socials: {
-        instagram: "@reylangko",
+        instagram: "@hyugaa_r",
         github: "reylangko",
-        email: "rey@pi23a.ac.id"
+        email: "reyylangko@gmail.com"
       }
     },
     {

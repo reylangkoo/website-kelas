@@ -10,7 +10,6 @@ function BodyWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const hideNavbar = pathname === "/"
   const hideWhatsApp = pathname === "/vscode" 
-  const isVsCodePage = pathname === "/vscode"
 
   return (
     <div

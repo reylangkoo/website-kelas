@@ -12,7 +12,6 @@ export default function JadwalPage() {
   Array(6).fill(0).map(() => Math.floor(Math.random() * 100))
   );
 
-
   // Inisialisasi state dengan nilai default
   const hari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"]
   const d = new Date()
@@ -54,9 +53,9 @@ export default function JadwalPage() {
       mataKuliah: "Sistem Keamanan Informasi",
       kode: "P786222",
       sks: 3,
-      jam: "08.00–10.00 WITA",
+      jam: "13.00–16.00 WITA",
       ruang: "Ruang PI-2",
-      dosen: "Meilian Ardi Sadiki, M.Pd",
+      dosen: "Syukri Adi Sakti, M.Pd",
       color: "from-blue-500 to-cyan-500",
       icon: "🔒"
     },
@@ -67,18 +66,18 @@ export default function JadwalPage() {
       sks: 3,
       jam: "08.00–10.00 WITA",
       ruang: "Ruang PI-1",
-      dosen: "Meilian Ardi Sadiki, M.Pd",
+      dosen: "Minahen Budi Bansoma, S.Kom., M.Kom",
       color: "from-purple-500 to-pink-500",
       icon: "🤖"
     },
     {
-      hari: "Selasa",
+      hari: "Rabu",
       mataKuliah: "Mobile Learning",
       kode: "P786225",
       sks: 3,
-      jam: "13.00–15.00 WITA",
+      jam: "08.00–10.00 WITA",
       ruang: "Ruang PI-2",
-      dosen: "Dianah F. Alilo, S.Kom., M.T",
+      dosen: "Syukri Adi Sakti, M.Pd",
       color: "from-green-500 to-emerald-500",
       icon: "📱"
     },
@@ -89,9 +88,20 @@ export default function JadwalPage() {
       sks: 3,
       jam: "13.00–16.00 WITA",
       ruang: "Ruang PI-1",
-      dosen: "Ilom Einstein, S.Kom., M.Cs",
+      dosen: "Diana F. Fallo, S.Kom., MT",
       color: "from-orange-500 to-red-500",
       icon: "🎮"
+    },
+    {
+      hari: "Kamis",
+      mataKuliah: "Animasi & Motion Grafis",
+      kode: "P786227",
+      sks: 3,
+      jam: "10.00–12.00 WITA",
+      ruang: "Lab. Kom",
+      dosen: "-",
+      color: "from-indigo-500 to-purple-500",
+      icon: "🎨"
     },
     {
       hari: "Kamis",
@@ -100,7 +110,7 @@ export default function JadwalPage() {
       sks: 2,
       jam: "13.00–15.00 WITA",
       ruang: "Lab. Kom",
-      dosen: "Dr. Maria M. Sogen, S.Kom., M.Pd",
+      dosen: "Dr. Maria M.B. Sogen, S.Kom., M.Pd",
       color: "from-indigo-500 to-purple-500",
       icon: "📚"
     },
@@ -110,8 +120,8 @@ export default function JadwalPage() {
       kode: "P786222",
       sks: 3,
       jam: "07.00–Selesai",
-      ruang: "Ruang PI-3",
-      dosen: "Meilian Budi Basronama, S.Kom., M.Kom",
+      ruang: "Lab",
+      dosen: "Meinahen Budi Bansoma, S.Kom., M.Kom",
       color: "from-yellow-500 to-amber-500",
       icon: "💻"
     },
@@ -121,10 +131,10 @@ export default function JadwalPage() {
   const filteredJadwal = activeDay ? jadwal.filter(item => item.hari === activeDay) : jadwal
 
   const stats = [
-    { label: "Total Mata Kuliah", value: "6", icon: BookOpen },
-    { label: "SKS Semester", value: "17", icon: Clock },
+    { label: "Total Mata Kuliah", value: "7", icon: BookOpen },
+    { label: "SKS Semester", value: "19", icon: Clock },
     { label: "Hari Aktif", value: "5", icon: CalendarDays },
-    { label: "Dosen", value: "5", icon: User },
+    { label: "Dosen", value: "7", icon: User },
   ]
 
   return (
@@ -403,7 +413,7 @@ export default function JadwalPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="max-w-7xl mx-auto mt-12 text-center"
+          className="max-w-7xl mx-auto mt-8 -mb-8 text-center"
         >
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
             <div className="flex items-center justify-center gap-2 mb-3">

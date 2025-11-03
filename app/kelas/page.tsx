@@ -39,7 +39,7 @@ const MOCK_DATA = {
 // Data jadwal kuliah sesuai permintaan
 const SCHEDULE_DATA: ScheduleItem[] = [
   { 
-    time: "08:00-10:00", 
+    time: "13:00-15:00", 
     course: "Sistem Keamanan Informasi", 
     room: "Ruang PI-2",
     day: "Senin"
@@ -51,10 +51,10 @@ const SCHEDULE_DATA: ScheduleItem[] = [
     day: "Selasa"
   },
   { 
-    time: "13:00-15:00", 
+    time: "08:00-10:00", 
     course: "Mobile Learning", 
     room: "Ruang PI-2",
-    day: "Selasa"
+    day: "Rabu"
   },
   { 
     time: "13:00-16:00", 
@@ -181,15 +181,15 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
   }
 
   const handleTotalMataKuliah = () => {
-    showCustomFeedback("Membuka daftar mata kuliah")
+    showCustomFeedback("Klik Menu Jadwal Saja")
   }
 
   const handleTugasMendatang = () => {
-    showCustomFeedback("Developer masih capek 😴")
+    showCustomFeedback("Rey sudah capek..")
   }
 
   const handleKehadiran = () => {
-    showCustomFeedback("Developer masih capek 😴")
+    showCustomFeedback("Rey sudah capek..")
   }
 
   const stats = [
@@ -697,7 +697,7 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
-          className="max-w-7xl mx-auto mt-8 lg:mt-16 text-center"
+          className="max-w-7xl mx-auto mt-8 -mb-8 text-center"
         >
           <div className={`${
             darkMode ? 'bg-white/5' : 'bg-black/5'

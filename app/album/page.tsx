@@ -23,14 +23,84 @@ export default function AlbumPage() {
   const [classCode, setClassCode] = useState("");
   const [loginError, setLoginError] = useState("");
   const [classCodeError, setClassCodeError] = useState("");
+  // 🌐 Google OAuth
+const [isAuthenticating, setIsAuthenticating] = useState(false);
+const [authError, setAuthError] = useState("");
+
+// 🔹 Tombol fallback manual jika file dialog tidak muncul otomatis
+const [showManualUploadButton, setShowManualUploadButton] = useState(false);
+
+// Di dalam component, tambahkan useEffect untuk debug
+useEffect(() => {
+  console.log("🔄 Component state:", {
+    isAuthenticating,
+    authError,
+    photosCount: photos.length
+  });
+}, [isAuthenticating, authError, photos.length]);
+
+useEffect(() => {
+  const handleMessage = (event: MessageEvent) => {
+    console.log("📨 Received message from popup:", event.data);
+
+    if (event.data?.type === "auth_success") {
+      console.log("✅ Auth success via postMessage, triggering file input...");
+      setIsAuthenticating(false);
+
+      const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+      if (fileInput) {
+        setTimeout(() => fileInput.click(), 800);
+      } else {
+        console.error("❌ File input element not found!");
+      }
+    }
+
+    if (event.data?.type === "auth_error") {
+      console.error("❌ Auth error:", event.data.message);
+      setAuthError("Autentikasi gagal: " + event.data.message);
+      setIsAuthenticating(false);
+    }
+  };
+
+  window.addEventListener("message", handleMessage);
+  return () => window.removeEventListener("message", handleMessage);
+}, []);
+
+useEffect(() => {
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === "drive_auth_success" && event.newValue === "true") {
+      console.log("📨 Auth success detected via localStorage");
+
+      // Hapus flag supaya event tidak ter-trigger ulang
+      localStorage.removeItem("drive_auth_success");
+
+      // Tutup proses auth
+      setIsAuthenticating(false);
+
+      // Trigger file input
+      const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+      fileInput?.click();
+    }
+  };
+
+  window.addEventListener("storage", handleStorage);
+  return () => window.removeEventListener("storage", handleStorage);
+}, []);
 
   // Admin credentials (dalam production, ini harus dari environment variables)
   const ADMIN_CREDENTIALS = {
-    username: "admin",
-    password: "admin123"
+    username: "reylangko",
+    password: "hyuga10"
   };
   
   const VALID_CLASS_CODE = "PI23A";
+
+  useEffect(() => {
+  const isAdmin = localStorage.getItem("isAdmin");
+  if (isAdmin === "true") {
+    setIsAuthenticated(true);
+  }
+}, []);
 
   // 🧠 Ambil semua foto dari database
   useEffect(() => {
@@ -52,18 +122,100 @@ export default function AlbumPage() {
 
   // 🔐 Handle Login
   const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
+  e.preventDefault();
+  setLoginError("");
 
-    if (loginData.username === ADMIN_CREDENTIALS.username && 
-        loginData.password === ADMIN_CREDENTIALS.password) {
-      setIsAuthenticated(true);
-      setShowLogin(false);
-      setLoginData({ username: "", password: "" });
+  if (
+    loginData.username === ADMIN_CREDENTIALS.username &&
+    loginData.password === ADMIN_CREDENTIALS.password
+  ) {
+    setIsAuthenticated(true);
+    localStorage.setItem("isAdmin", "true"); // ✅ simpan ke localStorage
+    setShowLogin(false);
+    setLoginData({ username: "", password: "" });
+  } else {
+    setLoginError("Username atau password salah!");
+  }
+};
+
+  // 🔑 Handle Google OAuth sebelum upload
+const handleGoogleAuth = async () => {
+  setIsAuthenticating(true);
+  setAuthError("");
+
+  try {
+    const res = await fetch("/api/auth/google");
+    const data = await res.json();
+
+    if (data.authUrl) {
+      // 🔹 Definisikan handler
+      const handleMessage = (event: MessageEvent) => {
+        console.log("📨 Message received:", event.data);
+
+        if (event.data.type === "auth_success") {
+          console.log("✅ Auth success, triggering file input...");
+          setIsAuthenticating(false);
+          window.removeEventListener("message", handleMessage);
+
+          // 🔹 Trigger input file
+          setTimeout(() => {
+            const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+            if (fileInput) {
+              fileInput.click();
+              console.log("🎯 File input triggered!");
+            } else {
+              console.error("❌ File input not found!");
+            }
+          }, 1000);
+
+          // 🔹 Tampilkan tombol manual fallback
+          setShowManualUploadButton(true);
+          setTimeout(() => setShowManualUploadButton(false), 7000);
+
+        } else if (event.data.type === "auth_error") {
+          console.error("❌ Auth error:", event.data.message);
+          setAuthError("Autentikasi Google gagal: " + event.data.message);
+          setIsAuthenticating(false);
+          window.removeEventListener("message", handleMessage);
+        }
+      };
+
+      // ✅ Pasang listener SEBELUM buka popup
+      window.addEventListener("message", handleMessage);
+
+      // 🚨 Buka popup
+      const width = 600;
+      const height = 700;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
+
+      const authWindow = window.open(
+        data.authUrl,
+        "google_auth",
+        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+      );
+
+      // 🔹 FALLBACK jika popup tertutup tanpa pesan
+      const checkClosed = setInterval(() => {
+        if (authWindow?.closed) {
+          clearInterval(checkClosed);
+          console.log("🔍 Popup closed without message");
+          window.removeEventListener("message", handleMessage);
+          if (isAuthenticating) {
+            setAuthError("Popup tertutup sebelum autentikasi selesai");
+            setIsAuthenticating(false);
+          }
+        }
+      }, 1000);
     } else {
-      setLoginError("Username atau password salah!");
+      throw new Error("Failed to get auth URL");
     }
-  };
+  } catch (error) {
+    console.error("Auth error:", error);
+    setAuthError("Gagal menghubungkan ke Google Drive");
+    setIsAuthenticating(false);
+  }
+};
 
   // 🔑 Handle Class Code Verification
   const handleClassCode = (e: React.FormEvent) => {
@@ -71,11 +223,10 @@ export default function AlbumPage() {
     setClassCodeError("");
 
     if (classCode.toUpperCase() === VALID_CLASS_CODE) {
-      setShowClassCode(false);
-      // Trigger file input setelah kode kelas benar
-      const fileInput = document.getElementById("file-upload") as HTMLInputElement;
-      fileInput?.click();
-    } else {
+  setShowClassCode(false);
+  // Jalankan proses Google OAuth dulu sebelum upload
+  handleGoogleAuth();
+} else {
       setClassCodeError("Kode kelas salah! Coba lagi.");
     }
   };
@@ -561,6 +712,54 @@ export default function AlbumPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+  {isAuthenticating && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50"
+    >
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl p-8 text-center shadow-2xl border border-white/20"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full mx-auto mb-4"
+        />
+        <h3 className="text-2xl font-bold text-white mb-2">Menghubungkan ke Google Drive...</h3>
+        {authError && <p className="text-red-300 mt-3">{authError}</p>}
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
+
+{/* 🔹 Tombol fallback manual upload */}
+<AnimatePresence>
+  {showManualUploadButton && (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className="fixed bottom-10 left-1/2 transform -translate-x-1/2 z-50"
+    >
+      <button
+        onClick={() => {
+          const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+          fileInput?.click();
+        }}
+        className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-6 py-3 rounded-full shadow-lg font-semibold"
+      >
+        📸 Klik di sini untuk memilih foto (jika dialog tidak muncul otomatis)
+      </button>
+    </motion.div>
+  )}
+</AnimatePresence>
+
     </main>
   );
 }

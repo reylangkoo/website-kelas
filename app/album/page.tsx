@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { X, Upload, Trash2, Image as ImageIcon, Lock, Key, User, Shield } from "lucide-react";
+import { X, Upload, Trash2, Image as ImageIcon, Lock, Key, User, Shield, Check } from "lucide-react";
 import Image from "next/image";
 
 interface Photo {
@@ -29,6 +29,10 @@ const [authError, setAuthError] = useState("");
 
 // 🔹 Tombol fallback manual jika file dialog tidak muncul otomatis
 const [showManualUploadButton, setShowManualUploadButton] = useState(false);
+
+// 🆕 State untuk seleksi multiple foto
+const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+const [isSelectionMode, setIsSelectionMode] = useState(false);
 
 // Di dalam component, tambahkan useEffect untuk debug
 useEffect(() => {
@@ -271,7 +275,7 @@ const handleGoogleAuth = async () => {
     }
   };
 
-  // 🗑️ Hapus dari DB
+  // 🗑️ Hapus dari DB (single photo)
   const handleDelete = async (photoId: string) => {
     if (!isAuthenticated) {
       setShowLogin(true);
@@ -292,6 +296,54 @@ const handleGoogleAuth = async () => {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  // 🆕 Hapus multiple photos
+  const handleDeleteMultiple = async () => {
+    if (selectedPhotos.length === 0) return;
+    
+    if (!confirm(`Yakin ingin menghapus ${selectedPhotos.length} foto?`)) return;
+
+    try {
+      const deletePromises = selectedPhotos.map(photoId => 
+        fetch(`/api/photos?id=${photoId}`, { method: "DELETE" })
+      );
+      
+      const results = await Promise.all(deletePromises);
+      const allSuccess = results.every(res => res.ok);
+      
+      if (allSuccess) {
+        setPhotos((prev) => prev.filter((p) => !selectedPhotos.includes(p.id)));
+        setSelectedPhotos([]);
+        setIsSelectionMode(false);
+      } else {
+        throw new Error("Gagal menghapus beberapa foto");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 🆕 Toggle seleksi foto
+  const togglePhotoSelection = (photoId: string) => {
+    if (!isAuthenticated || !isSelectionMode) return;
+    
+    setSelectedPhotos(prev => 
+      prev.includes(photoId) 
+        ? prev.filter(id => id !== photoId)
+        : [...prev, photoId]
+    );
+  };
+
+  // 🆕 Toggle mode seleksi
+  const toggleSelectionMode = () => {
+    if (!isAuthenticated) {
+      setShowLogin(true);
+      return;
+    }
+    
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedPhotos([]);
   };
 
   // Trigger upload dengan class code
@@ -347,15 +399,46 @@ const handleGoogleAuth = async () => {
             <span className="whitespace-nowrap">{uploading ? "Uploading..." : "Upload Foto"}</span>
           </motion.button>
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowLogin(true)}
-            className="flex items-center gap-3 px-6 py-3 rounded-2xl font-semibold bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all flex-1 md:flex-none justify-center"
-          >
-            <Shield size={20} />
-            <span className="whitespace-nowrap">Admin</span>
-          </motion.button>
+          {/* 🆕 Tombol Seleksi untuk Admin */}
+          {isAuthenticated && isSelectionMode ? (
+            <div className="flex gap-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleDeleteMultiple}
+                disabled={selectedPhotos.length === 0}
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-semibold transition-all ${
+                  selectedPhotos.length === 0
+                    ? "bg-gray-600 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                <Trash2 size={18} />
+                <span className="whitespace-nowrap">Hapus ({selectedPhotos.length})</span>
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleSelectionMode}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl font-semibold bg-gray-600 hover:bg-gray-700 transition-all"
+              >
+                <X size={18} />
+                <span className="whitespace-nowrap">Batal</span>
+              </motion.button>
+            </div>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={isAuthenticated ? toggleSelectionMode : () => setShowLogin(true)}
+              className="flex items-center gap-3 px-6 py-3 rounded-2xl font-semibold bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all flex-1 md:flex-none justify-center"
+            >
+              <Shield size={20} />
+              <span className="whitespace-nowrap">
+                {isAuthenticated ? "Pilih Foto" : "Admin"}
+              </span>
+            </motion.button>
+          )}
         </div>
       </motion.div>
 
@@ -398,32 +481,63 @@ const handleGoogleAuth = async () => {
                 stiffness: 100
               }}
               whileHover={{ 
-                scale: 1.05,
-                y: -8
+                scale: isSelectionMode ? 1 : 1.05,
+                y: isSelectionMode ? 0 : -8
               }}
               className="group relative"
             >
               {/* Card Container */}
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm border border-white/10">
+              <div className={`relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm border transition-all ${
+                isSelectionMode && selectedPhotos.includes(photo.id) 
+                  ? "border-blue-400 ring-4 ring-blue-400/30" 
+                  : "border-white/10"
+              }`}>
+                {/* 🆕 Checkbox untuk seleksi */}
+                {isSelectionMode && (
+                  <div className="absolute top-4 left-4 z-20">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                      selectedPhotos.includes(photo.id) 
+                        ? "bg-blue-500" 
+                        : "bg-black/50 backdrop-blur-sm"
+                    }`}>
+                      {selectedPhotos.includes(photo.id) && (
+                        <Check size={20} className="text-white" />
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Image Container */}
-                <div className="relative h-72 overflow-hidden">
+                <div 
+                  className="relative h-72 overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    if (isSelectionMode) {
+                      togglePhotoSelection(photo.id);
+                    } else {
+                      setSelected(photo.src);
+                    }
+                  }}
+                >
                   <Image
                     src={photo.src}
                     alt={photo.name}
                     fill
                     className="object-cover transition-all duration-700 group-hover:scale-110"
-                    onClick={() => setSelected(photo.src)}
                   />
                   
                   {/* Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
                   
-                  {/* Hover Actions */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                  {/* Hover Actions - MODIFIKASI: Selalu tampil di mobile */}
+                  <div className={`absolute bottom-0 left-0 right-0 p-4 transition-all duration-500 ${
+                    // Tampil di mobile atau saat hover di desktop
+                    "sm:translate-y-4 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 translate-y-0 opacity-100"
+                  }`}>
                     <div className="flex justify-between items-center">
                       <span className="text-white/90 text-sm font-medium bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full">
                         {new Date(photo.uploadedAt).toLocaleDateString('id-ID')}
                       </span>
+                      {/* MODIFIKASI: Tombol hapus selalu tampil di mobile, atau saat hover di desktop */}
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}

@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Users, ArrowLeft, Crown, Code, Paintbrush, GamepadIcon, Smartphone, Brain, BookOpen } from "lucide-react"
+import { Users, ArrowLeft, Crown, Code, Paintbrush, GamepadIcon, Smartphone, Brain, BookOpen, Upload } from "lucide-react"
 import Link from "next/link"
 
 export default function StrukturPage() {
@@ -58,6 +58,13 @@ export default function StrukturPage() {
       nim: "237111027",
       warna: "from-cyan-500 via-blue-500 to-purple-500",
       icon: Smartphone
+    },
+    {
+      matkul: "Multimedia & Cloud Computing",
+      nama: "Elsa Sin",
+      nim: "237111008",
+      warna: "from-indigo-500 via-purple-500 to-pink-500",
+      icon: Upload // atau UploadCloud jika tersedia
     }
   ]
 

@@ -345,8 +345,8 @@ if (!isClient) {
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {[
               { label: "Total Anggota", value: anggota.length, emoji: "👥" },
-              { label: "Ketua & Sipen", value: 7, emoji: "⭐" },
-              { label: "Tahun Ajaran", value: "2024", emoji: "🎓" },
+              { label: "Ketua & Sipen", value: 8, emoji: "⭐" },
+              { label: "Tahun Ajaran", value: "2025", emoji: "🎓" },
               { label: "Semester", value: "5A", emoji: "📚" },
             ].map((stat, i) => (
               <div
@@ -366,8 +366,8 @@ if (!isClient) {
           <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {[
               { key: "semua", label: "👥 Semua", count: anggota.length },
-              { key: "pengurus", label: "⭐ Ketua & Sipen", count: 7 },
-              { key: "sipen", label: "🎯 SIPEN", count: 6 },
+              { key: "pengurus", label: "⭐ Ketua & Sipen", count: 8 },
+              { key: "sipen", label: "🎯 SIPEN", count: 7 },
             ].map((filter) => (
               <button
                 key={filter.key}

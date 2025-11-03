@@ -274,7 +274,7 @@ export default function StrukturPage() {
               Tim SIPEN
             </h2>
             <p className="text-purple-300/70 text-sm mt-1">
-              6 penanggung jawab mata kuliah
+              7 penanggung jawab mata kuliah
             </p>
             <div className="w-20 h-1 bg-gradient-to-r from-cyan-500 to-purple-500 mx-auto mt-2 rounded-full"></div>
           </motion.div>

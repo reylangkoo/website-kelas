@@ -189,7 +189,7 @@ if (!isClient) {
       {
       nama: "Elsa Sin",
       nim: "237111008",
-      role: "Anggota",
+      role: "Sipen",
       hobi: "Multimedia & Cloud",
       foto: "/assets/elsa.jpg",
       quote: "Building for the cloud ⚠️",

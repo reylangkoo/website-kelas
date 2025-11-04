@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
-import { LogOut, Calendar, MessageCircle, Users, User, Image as ImageIcon, Bell, Sparkles, Zap, Target, TrendingUp, Clock, BookOpen, Settings, X, Sun, Moon } from "lucide-react"
+import { LogOut, Calendar, MessageCircle, Users, User, Image as ImageIcon, Bell, Sparkles, Zap, Target, TrendingUp, Clock, BookOpen, Settings, X, Sun, Moon, Bot } from "lucide-react"
 import { Instagram } from "lucide-react"
 
 // Interface untuk tipe data
@@ -787,8 +787,8 @@ useEffect(() => {
             />
             <MobileCyberCard
               href="/asistenpi"
-              title="Asisten Pi"
-              icon={<Bell className="w-4 h-4" />}
+              title="Asisten PI"
+              icon={<Bot className="w-4 h-4" />}
               gradient="from-amber-500 to-orange-600"
               index={5}
               darkMode={darkMode}

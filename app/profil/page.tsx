@@ -33,88 +33,143 @@ useEffect(() => {
   queueMicrotask(() => setIsMounted(true))
 }, [])
 
-  // Animated Background Effect
-  useEffect(() => {
-    if (!isMounted || !canvasRef.current) return
+  // Animated Background Effect - FIXED FOR ALL DEVICES
+useEffect(() => {
+  if (!isMounted || !canvasRef.current) return
 
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+  const canvas = canvasRef.current
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
 
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
+  let particles: Array<{
+    x: number
+    y: number
+    size: number
+    speedX: number
+    speedY: number
+    color: string
+  }> = []
 
-    const particles: Array<{
-      x: number
-      y: number
-      size: number
-      speedX: number
-      speedY: number
-      color: string
-    }> = []
+  const colors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
+  let animationId: number
+  let visibleWidth = window.innerWidth
+  let visibleHeight = window.innerHeight
 
-    const colors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
-
-    for (let i = 0; i < 40; i++) {
+  // INIT PARTIKEL BARU
+  const initParticles = () => {
+    particles = []
+    for (let i = 0; i < 80; i++) {
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size: Math.random() * 1 + 0.5,
-        speedX: (Math.random() - 0.5) * 0.2,
-        speedY: (Math.random() - 0.5) * 0.2,
+        x: Math.random() * visibleWidth,
+        y: Math.random() * visibleHeight,
+        size: (Math.random() * 2 + 1),
+        speedX: (Math.random() - 0.5) * 0.5,
+        speedY: (Math.random() - 0.5) * 0.5,
         color: colors[Math.floor(Math.random() * colors.length)]
       })
     }
+  }
 
-    const animate = () => {
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.02)'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
+  // SET CANVAS SIZE
+  const setCanvasSize = () => {
+    const dpr = window.devicePixelRatio || 1
+    visibleWidth = window.innerWidth
+    visibleHeight = window.innerHeight
+    
+    canvas.width = visibleWidth * dpr
+    canvas.height = visibleHeight * dpr
+    ctx.scale(dpr, dpr)
+    canvas.style.width = `${visibleWidth}px`
+    canvas.style.height = `${visibleHeight}px`
+  }
 
-      particles.forEach((particle, index) => {
-        particle.x += particle.speedX
-        particle.y += particle.speedY
+  // INITIAL SETUP
+  setCanvasSize()
+  initParticles()
 
-        if (particle.x > canvas.width) particle.x = 0
-        if (particle.x < 0) particle.x = canvas.width
-        if (particle.y > canvas.height) particle.y = 0
-        if (particle.y < 0) particle.y = canvas.height
+  const animate = () => {
+    // Clear canvas
+    ctx.fillStyle = '#0f172a'
+    ctx.fillRect(0, 0, visibleWidth, visibleHeight)
 
-        ctx.beginPath()
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-        ctx.fillStyle = particle.color
-        ctx.globalAlpha = 0.2
-        ctx.fill()
+    particles.forEach((particle, index) => {
+      // Update position
+      particle.x += particle.speedX
+      particle.y += particle.speedY
 
-        for (let j = index + 1; j < particles.length; j++) {
-          const dx = particle.x - particles[j].x
-          const dy = particle.y - particles[j].y
-          const distance = Math.sqrt(dx * dx + dy * dy)
+      // Boundary checking dengan visible size
+      if (particle.x > visibleWidth) particle.x = 0
+      else if (particle.x < 0) particle.x = visibleWidth
+      if (particle.y > visibleHeight) particle.y = 0
+      else if (particle.y < 0) particle.y = visibleHeight
 
-          if (distance < 50) {
-            ctx.beginPath()
-            ctx.strokeStyle = particle.color
-            ctx.globalAlpha = 0.05 * (1 - distance / 50)
-            ctx.lineWidth = 0.2
-            ctx.moveTo(particle.x, particle.y)
-            ctx.lineTo(particles[j].x, particles[j].y)
-            ctx.stroke()
-          }
+      // Draw particle - TANPA SHADOW UNTUK PERFORMANCE
+      ctx.beginPath()
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+      ctx.fillStyle = particle.color
+      ctx.globalAlpha = 0.8
+      ctx.fill()
+
+      // Connect particles - LEBIH STABIL
+      for (let j = index + 1; j < particles.length; j++) {
+        const dx = particle.x - particles[j].x
+        const dy = particle.y - particles[j].y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        if (distance < 100) {
+          ctx.beginPath()
+          ctx.strokeStyle = particle.color
+          // Alpha yang konsisten
+          ctx.globalAlpha = Math.max(0.1, 0.6 * (1 - distance / 100))
+          ctx.lineWidth = 1.5
+          ctx.moveTo(particle.x, particle.y)
+          ctx.lineTo(particles[j].x, particles[j].y)
+          ctx.stroke()
         }
-      })
+      }
 
-      requestAnimationFrame(animate)
+      // Reset global alpha
+      ctx.globalAlpha = 1
+    })
+
+    animationId = requestAnimationFrame(animate)
+  }
+
+  animate()
+
+  const handleResize = () => {
+    // Cancel previous animation frame
+    if (animationId) {
+      cancelAnimationFrame(animationId)
     }
 
+    // Update canvas size
+    setCanvasSize()
+    
+    // RE-INIT PARTIKEL dengan size baru
+    initParticles()
+
+    // Restart animation
     animate()
+  }
 
-    const handleResize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
+  // Debounce resize untuk performance
+  let resizeTimeout: NodeJS.Timeout
+  const debouncedResize = () => {
+    clearTimeout(resizeTimeout)
+    resizeTimeout = setTimeout(handleResize, 250)
+  }
+
+  window.addEventListener('resize', debouncedResize)
+  
+  return () => {
+    if (animationId) {
+      cancelAnimationFrame(animationId)
     }
-
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [isMounted])
+    window.removeEventListener('resize', debouncedResize)
+    clearTimeout(resizeTimeout)
+  }
+}, [isMounted])
 
   // Data anggota kelas
   const anggota: Anggota[] = [

@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
-import { Menu, X, Home, Calendar, MessageCircle, Users, User, ImageIcon, Code, Sparkles, Zap } from "lucide-react"
+import { Menu, X, Home, Calendar, MessageCircle, Users, User, ImageIcon, Code, Sparkles, Zap, Bot, ChevronDown } from "lucide-react"
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [activeHover, setActiveHover] = useState<number | null>(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -17,15 +18,21 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const navItems = [
+  const mainNavItems = [
     { name: "Dashboard", href: "/kelas", icon: Home },
     { name: "Jadwal", href: "/jadwal", icon: Calendar },
     { name: "Forum", href: "/forum", icon: MessageCircle },
+  ]
+
+  const moreNavItems = [
     { name: "Struktur", href: "/struktur", icon: Users },
     { name: "Album", href: "/album", icon: ImageIcon },
     { name: "Profil", href: "/profil", icon: User },
     { name: "VSCode", href: "/vscode", icon: Code },
+    { name: "Asisten PI", href: "/asistenpi", icon: Bot },
   ]
+
+  const allNavItems = [...mainNavItems, ...moreNavItems]
 
   return (
     <motion.nav
@@ -90,9 +97,10 @@ export default function Navbar() {
           />
         </Link>
 
-        {/* MENU DESKTOP - Cyber Glass Style */}
+        {/* MENU DESKTOP - Modern dengan Dropdown */}
         <div className="hidden md:flex items-center space-x-1">
-          {navItems.map((item, index) => {
+          {/* Main Navigation Items */}
+          {mainNavItems.map((item, index) => {
             const IconComponent = item.icon
             return (
               <motion.div
@@ -142,6 +150,96 @@ export default function Navbar() {
               </motion.div>
             )
           })}
+
+          {/* More Dropdown */}
+          <motion.div 
+            className="relative"
+            onHoverStart={() => setDropdownOpen(true)}
+            onHoverEnd={() => setDropdownOpen(false)}
+          >
+            <motion.button
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-xl border backdrop-blur-md transition-all duration-300 group ${
+                dropdownOpen
+                  ? 'bg-cyan-500/10 border-cyan-400/50 text-cyan-300 shadow-lg shadow-cyan-500/20'
+                  : 'bg-white/5 border-white/10 text-cyan-200/80 hover:border-cyan-400/30'
+              }`}
+            >
+              {/* Icon */}
+              <motion.div
+                animate={{ 
+                  rotate: dropdownOpen ? 180 : 0,
+                  scale: dropdownOpen ? 1.2 : 1
+                }}
+                transition={{ duration: 0.4 }}
+              >
+                <ChevronDown className="w-4 h-4" />
+              </motion.div>
+              
+              {/* Text */}
+              <span className="text-sm font-medium whitespace-nowrap">
+                More
+              </span>
+
+              {/* Active Indicator */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: dropdownOpen ? 1 : 0 }}
+                className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50"
+              />
+            </motion.button>
+
+            {/* Dropdown Menu */}
+            <AnimatePresence>
+              {dropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute top-full right-0 mt-2 w-48 bg-slate-900/95 backdrop-blur-2xl border border-cyan-500/30 rounded-xl shadow-2xl shadow-cyan-500/20 overflow-hidden"
+                >
+                  <div className="p-2">
+                    {moreNavItems.map((item, index) => {
+                      const IconComponent = item.icon
+                      return (
+                        <motion.div
+                          key={item.name}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <Link
+                            href={item.href}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-cyan-200/80 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all duration-300 group"
+                          >
+                            <IconComponent className="w-4 h-4" />
+                            <span className="text-sm font-medium">{item.name}</span>
+                            <motion.div
+                              animate={{ 
+                                rotate: 360,
+                                scale: [1, 1.2, 1]
+                              }}
+                              transition={{ 
+                                duration: 2, 
+                                repeat: Infinity,
+                                delay: index * 0.2
+                              }}
+                              className="ml-auto opacity-0 group-hover:opacity-100"
+                            >
+                              <Sparkles className="w-3 h-3 text-cyan-400" />
+                            </motion.div>
+                          </Link>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
 
         {/* TOGGLE MOBILE - Cyber Style */}
@@ -162,7 +260,7 @@ export default function Navbar() {
         </motion.button>
       </div>
 
-      {/* MENU MOBILE - Cyber Glass Style */}
+      {/* MENU MOBILE - Tetap sama seperti sebelumnya */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -174,7 +272,7 @@ export default function Navbar() {
           >
             <div className="max-w-7xl mx-auto px-6 py-4">
               <div className="grid grid-cols-2 gap-3">
-                {navItems.map((item, index) => {
+                {allNavItems.map((item, index) => {
                   const IconComponent = item.icon
                   return (
                     <motion.div

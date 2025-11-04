@@ -1,9 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { LogOut, Calendar, MessageCircle, Users, User, Image, Bell, Sparkles, Zap, Target, TrendingUp, Clock, BookOpen, GraduationCap, Settings, X } from "lucide-react"
+import Image from "next/image"
+import { LogOut, Calendar, MessageCircle, Users, User, Image as ImageIcon, Bell, Sparkles, Zap, Target, TrendingUp, Clock, BookOpen, Settings, X, Sun, Moon } from "lucide-react"
+import { Instagram } from "lucide-react"
 
 // Interface untuk tipe data
 interface Task {
@@ -108,63 +110,148 @@ export default function Dashboard() {
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackMessage, setFeedbackMessage] = useState("")
   const [todaySchedule, setTodaySchedule] = useState<ScheduleItem[]>([])
+  const [isMounted, setIsMounted] = useState(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const isClient = typeof window !== "undefined"
+  // Fix hydration: Set mounted state after component mounts
+ useEffect(() => {
+  // Tunda eksekusi state agar tidak dianggap sinkron
+  queueMicrotask(() => {
+    setIsMounted(true)
 
-useEffect(() => {
-  if (!isClient) return
+    const storedName = localStorage.getItem("namaUser") || "Mahasiswa"
+    setNama(storedName)
 
-  // Ambil nama dari localStorage
-  // Ambil nama dari localStorage (asynchronous agar lint aman)
-Promise.resolve().then(() => {
-  const storedName = localStorage.getItem("namaUser") || "Mahasiswa"
-  setNama(storedName)
-})
-
-  // Update waktu real-time
-  const updateTime = () => {
-    const now = new Date()
-    setCurrentTime(now.toLocaleTimeString("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }))
-  }
-
-  updateTime()
-  const interval = setInterval(updateTime, 1000)
-
-  const today = new Date().toLocaleDateString('id-ID', { weekday: 'long' })
- const filtered = SCHEDULE_DATA.filter(item => 
-  item.day.toLowerCase() === today.toLowerCase()
-)
-Promise.resolve().then(() => setTodaySchedule(filtered))
-
-
-  const unsubscribe = forumSimulation.subscribe((messages) => {
-    const newMsgs = messages.filter((msg) => msg.isNew).length
-    setNewForumMessages(newMsgs)
-  })
-
-  const forumInterval = setInterval(() => {
-    if (Math.random() > 0.7) {
-      const newMsg: ForumMessage = {
-        id: Date.now(),
-        user: "Teman Kelas",
-        message: "Ada yang bisa bantu tugas ini?",
-        timestamp: new Date(),
-        isNew: true,
-      }
-      forumSimulation.addMessage(newMsg)
+    const updateTime = () => {
+      const now = new Date()
+      setCurrentTime(
+        now.toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      )
     }
-  }, 10000)
 
-  return () => {
-    clearInterval(interval)
-    clearInterval(forumInterval)
-    unsubscribe()
-  }
-}, [isClient])
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+
+    const today = new Date().toLocaleDateString("id-ID", { weekday: "long" })
+    const filtered = SCHEDULE_DATA.filter(
+      (item) => item.day.toLowerCase() === today.toLowerCase()
+    )
+    setTodaySchedule(filtered)
+
+    const unsubscribe = forumSimulation.subscribe((messages) => {
+      const newMsgs = messages.filter((msg) => msg.isNew).length
+      setNewForumMessages(newMsgs)
+    })
+
+    const forumInterval = setInterval(() => {
+      if (Math.random() > 0.7) {
+        const newMsg: ForumMessage = {
+          id: Date.now(),
+          user: "Teman Kelas",
+          message: "Ada yang bisa bantu tugas ini?",
+          timestamp: new Date(),
+          isNew: true,
+        }
+        forumSimulation.addMessage(newMsg)
+      }
+    }, 10000)
+
+    // cleanup
+    return () => {
+      clearInterval(interval)
+      clearInterval(forumInterval)
+      unsubscribe()
+    }
+  })
+}, [])
+
+  // Animated Background Effect - hanya dijalankan setelah mount
+  useEffect(() => {
+    if (!isMounted || !canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+
+    const particles: Array<{
+      x: number
+      y: number
+      size: number
+      speedX: number
+      speedY: number
+      color: string
+    }> = []
+
+    const colors = darkMode ? ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'] : ['#0891b2', '#2563eb', '#7c3aed', '#db2777']
+
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 1.5 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.3,
+        speedY: (Math.random() - 0.5) * 0.3,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      })
+    }
+
+    const animate = () => {
+      ctx.fillStyle = darkMode ? 'rgba(15, 23, 42, 0.03)' : 'rgba(255, 255, 255, 0.02)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      particles.forEach((particle, index) => {
+        particle.x += particle.speedX
+        particle.y += particle.speedY
+
+        if (particle.x > canvas.width) particle.x = 0
+        if (particle.x < 0) particle.x = canvas.width
+        if (particle.y > canvas.height) particle.y = 0
+        if (particle.y < 0) particle.y = canvas.height
+
+        ctx.beginPath()
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+        ctx.fillStyle = particle.color
+        ctx.globalAlpha = 0.4
+        ctx.fill()
+
+        // Connect particles
+        for (let j = index + 1; j < particles.length; j++) {
+          const dx = particle.x - particles[j].x
+          const dy = particle.y - particles[j].y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+
+          if (distance < 80) {
+            ctx.beginPath()
+            ctx.strokeStyle = particle.color
+            ctx.globalAlpha = 0.1 * (1 - distance / 80)
+            ctx.lineWidth = 0.3
+            ctx.moveTo(particle.x, particle.y)
+            ctx.lineTo(particles[j].x, particles[j].y)
+            ctx.stroke()
+          }
+        }
+      })
+
+      requestAnimationFrame(animate)
+    }
+
+    animate()
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [isMounted, darkMode])
 
   const showCustomFeedback = (message: string) => {
     setFeedbackMessage(message)
@@ -174,22 +261,21 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
     }, 3000)
   }
 
-  const markForumAsRead = () => {
-    forumMessages = forumMessages.map(msg => ({ ...msg, isNew: false }))
-    setNewForumMessages(0)
-    showCustomFeedback("Pesan forum ditandai sudah dibaca")
+  const handleInstagramClick = () => {
+    window.open("https://www.instagram.com/pi_ucb_a23", "_blank")
+    showCustomFeedback("Membuka Instagram PI23A!")
   }
 
   const handleTotalMataKuliah = () => {
-    showCustomFeedback("Klik Menu Jadwal Saja")
+    showCustomFeedback("Total 6 mata kuliah aktif")
   }
 
   const handleTugasMendatang = () => {
-    showCustomFeedback("Rey sudah capek..")
+    showCustomFeedback(`${tasks.length} tugas perlu perhatian`)
   }
 
   const handleKehadiran = () => {
-    showCustomFeedback("Rey sudah capek..")
+    showCustomFeedback("Kehadiran Anda 94% - Excellent!")
   }
 
   const stats = [
@@ -215,27 +301,18 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
       onClick: handleKehadiran
     },
     { 
-      label: "Diskusi Aktif", 
-      value: newForumMessages.toString(), 
-      icon: MessageCircle, 
-      change: "Baru",
-      onClick: () => window.location.href = '/forum'
-    },
-  ]
-
-  const quickActions = [
-    { 
-      label: "Forum Baru", 
-      icon: MessageCircle, 
-      count: newForumMessages, 
-      color: "from-purple-500 to-pink-500",
-      onClick: markForumAsRead
+      label: "Instagram", 
+      value: "PI23A", 
+      icon: Instagram,
+      change: "Terbaru",
+      onClick: handleInstagramClick
     },
   ]
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode)
-    showCustomFeedback(`Mode ${!darkMode ? 'Gelap' : 'Terang'} diaktifkan`)
+    const newDarkMode = !darkMode
+    setDarkMode(newDarkMode)
+    showCustomFeedback(`Mode ${newDarkMode ? 'Gelap' : 'Terang'} diaktifkan`)
   }
 
   const handleLogout = () => {
@@ -246,13 +323,13 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
     }, 1500)
   }
 
-  // Tampilkan loading sampai client siap
-  if (typeof window === "undefined") {
+  // Tampilkan loading sampai client siap (fix hydration)
+  if (!isMounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-          <p className="text-purple-300">Memuat dashboard...</p>
+          <p className="text-cyan-300">Memuat dashboard...</p>
         </div>
       </div>
     )
@@ -261,10 +338,16 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
   return (
     <main className={`min-h-screen transition-all duration-500 ${
       darkMode 
-        ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900' 
-        : 'bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50'
-    } text-white relative overflow-hidden`}>
+        ? 'bg-slate-950 text-white' 
+        : 'bg-gradient-to-br from-blue-50 via-cyan-50 to-purple-50 text-gray-900'
+    } relative overflow-hidden`}>
       
+      {/* Animated Canvas Background */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+      />
+
       {/* Custom Feedback Modal */}
       <AnimatePresence>
         {showFeedback && (
@@ -278,7 +361,7 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
               className={`${
                 darkMode ? 'bg-slate-800/95' : 'bg-white/95'
               } rounded-2xl p-8 max-w-sm mx-4 border ${
-                darkMode ? 'border-purple-500/50' : 'border-purple-300'
+                darkMode ? 'border-cyan-500/50' : 'border-cyan-400/50'
               } shadow-2xl backdrop-blur-sm`}
             >
               <div className="text-center">
@@ -290,9 +373,7 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
                 }`}>
                   Notifikasi
                 </h3>
-                <p className={`${
-                  darkMode ? 'text-purple-200' : 'text-purple-700'
-                }`}>
+                <p className={darkMode ? 'text-cyan-200' : 'text-cyan-700'}>
                   {feedbackMessage}
                 </p>
               </div>
@@ -301,117 +382,102 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
         )}
       </AnimatePresence>
 
-      {/* Animated Background */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 left-0 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
-      </div>
-
-      <div className="relative z-10 px-4 sm:px-6 pb-20">
-        {/* Header - Responsif */}
+      <div className="relative z-10 px-4 sm:px-6 pb-20 pt-4">
+        {/* Header - Compact Layout */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, type: "spring" }}
-          className="max-w-7xl mx-auto pt-6 lg:pt-8"
+          transition={{ duration: 0.6 }}
+          className="max-w-7xl mx-auto"
         >
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-6 mb-6 lg:mb-8">
-            {/* Title Section */}
-            <div className="text-center lg:text-left order-1 lg:order-1 flex-1">
-              <motion.div
-                className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 lg:gap-4 mb-3 lg:mb-4"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="relative">
-                  <GraduationCap className={`${darkMode ? 'text-cyan-400' : 'text-cyan-600'} w-9 h-9 lg:w-11 lg:h-11`} />
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className={`absolute -inset-2 lg:-inset-3 border-2 ${
-                      darkMode ? 'border-cyan-400/30' : 'border-cyan-600/30'
-                    } rounded-full`}
-                  />
-                </div>
-                <div className="flex-1">
-                  <h1 className={`text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r ${
-                    darkMode 
-                      ? 'from-purple-400 via-pink-400 to-cyan-400' 
-                      : 'from-purple-600 via-pink-600 to-cyan-600'
-                  } bg-clip-text text-transparent leading-tight`}>
-                    Selamat Datang, {nama}! 👋
-                  </h1>
-                  <p className={`mt-1 lg:mt-2 text-sm lg:text-base ${
-                    darkMode ? 'text-purple-300/80' : 'text-purple-600/80'
-                  }`}>
-                    Portal Kelas <b className={darkMode ? 'text-cyan-300' : 'text-cyan-600'}>PI23A</b> – Pendidikan Informatika FKIP 2023
-                  </p>
-                </div>
-              </motion.div>
-              
-              {/* Time & Date */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className={`flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 lg:gap-4 text-xs lg:text-sm ${
-                  darkMode ? 'text-purple-300/70' : 'text-purple-600/70'
-                }`}
-              >
-                <div className={`flex items-center gap-2 ${
-                  darkMode ? 'bg-white/5' : 'bg-black/5'
-                } px-3 py-1 rounded-full`}>
-                  <Clock className="w-3 h-3 lg:w-4 lg:h-4" />
-                  <span>{currentTime}</span>
-                </div>
-                <div className={`flex items-center gap-2 ${
-                  darkMode ? 'bg-white/5' : 'bg-black/5'
-                } px-3 py-1 rounded-full`}>
-                  <Calendar className="w-3 h-3 lg:w-4 lg:h-4" />
-                  <span>{new Date().toLocaleDateString('id-ID', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}</span>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Quick Stats - Responsif - PERBAIKAN DI SINI */}
+          <div className="flex items-center justify-between mb-6">
+            {/* Logo & Title - Compact */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7 }}
-              className="flex justify-end order-2 lg:order-2 w-full lg:w-auto"
+              className="flex items-center gap-3"
+              whileHover={{ scale: 1.02 }}
             >
-              <div className="flex gap-2 lg:gap-3 w-full lg:w-auto justify-end">
-                {quickActions.map((action, index) => (
-                  <motion.button
-                    key={index}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={action.onClick}
-                    className={`bg-gradient-to-br ${action.color} rounded-xl lg:rounded-2xl p-3 lg:p-4 text-center min-w-[70px] lg:min-w-[90px] backdrop-blur-md border border-white/10 cursor-pointer shadow-lg ml-auto sm:ml-0 lg:ml-auto`}
-                  >
-                    <action.icon className="w-4 h-4 lg:w-5 lg:h-5 text-white mx-auto mb-1 lg:mb-2" />
-                    <div className="text-base lg:text-xl font-bold text-white">{action.count}</div>
-                    <div className="text-xs text-white/80 leading-tight">{action.label}</div>
-                  </motion.button>
-                ))}
+              <div className="relative">
+                <div className={`w-12 h-12 bg-gradient-to-br ${
+                  darkMode ? 'from-cyan-400 to-blue-600' : 'from-cyan-500 to-blue-600'
+                } rounded-xl flex items-center justify-center shadow-lg ${
+                  darkMode ? 'shadow-cyan-500/30' : 'shadow-cyan-500/20'
+                }`}>
+                  <div className={`w-9 h-9 ${
+                    darkMode ? 'bg-slate-900/80' : 'bg-white/90'
+                  } rounded-lg backdrop-blur-sm border ${
+                    darkMode ? 'border-white/20' : 'border-gray-200'
+                  } flex items-center justify-center overflow-hidden`}>
+                    <Image
+                      src="/assets/ucb.png"
+                      alt="Logo PI23A"
+                      width={32}
+                      height={32}
+                      className="object-contain"
+                    />
+                  </div>
+                </div>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className={`absolute -inset-2 border ${
+                    darkMode ? 'border-cyan-400/30' : 'border-cyan-500/30'
+                  } rounded-xl`}
+                />
+              </div>
+              
+              {/* Title Text */}
+              <div>
+                <h1 className={`text-xl lg:text-2xl font-bold bg-gradient-to-r ${
+                  darkMode 
+                    ? 'from-cyan-400 via-blue-500 to-purple-600' 
+                    : 'from-cyan-600 via-blue-600 to-purple-700'
+                } bg-clip-text text-transparent`}>
+                  Halo, {nama}! 👋
+                </h1>
+                <p className={`text-xs ${
+                  darkMode ? 'text-cyan-200/80' : 'text-cyan-700/80'
+                } mt-0.5`}>
+                  Portal <b className={darkMode ? 'text-cyan-300' : 'text-cyan-600'}>PI23A</b>
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Time & Date - Compact */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className={`flex flex-col items-end gap-1 text-xs ${
+                darkMode ? 'text-cyan-200/70' : 'text-cyan-700/70'
+              }`}
+            >
+              <div className={`flex items-center gap-2 ${
+                darkMode ? 'bg-white/5' : 'bg-black/5'
+              } px-2 py-1 rounded-lg`}>
+                <Clock className="w-3 h-3" />
+                <span>{currentTime}</span>
+              </div>
+              <div className={`flex items-center gap-2 ${
+                darkMode ? 'bg-white/5' : 'bg-black/5'
+              } px-2 py-1 rounded-lg`}>
+                <Calendar className="w-3 h-3" />
+                <span className="text-xs">{new Date().toLocaleDateString('id-ID', { 
+                  day: 'numeric', 
+                  month: 'short'
+                })}</span>
               </div>
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Stats Overview - Responsif */}
+        {/* Stats Overview */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-          className="max-w-7xl mx-auto mb-8 lg:mb-12"
+          transition={{ delay: 0.5 }}
+          className="max-w-7xl mx-auto mb-6"
         >
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {stats.map((stat, index) => {
               const IconComponent = stat.icon
               return (
@@ -421,24 +487,29 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
                   whileTap={{ scale: 0.98 }}
                   onClick={stat.onClick}
                   className={`${
-                    darkMode ? 'bg-white/5' : 'bg-black/5'
-                  } backdrop-blur-md rounded-xl lg:rounded-2xl p-4 lg:p-6 border ${
-                    darkMode ? 'border-white/10 hover:border-white/20' : 'border-black/10 hover:border-black/20'
-                  } transition-all duration-300 cursor-pointer text-left`}
+                    darkMode ? 'bg-white/5' : 'bg-white/80'
+                  } backdrop-blur-md rounded-xl p-4 border ${
+                    darkMode ? 'border-white/10 hover:border-white/20' : 'border-gray-200 hover:border-gray-300'
+                  } transition-all duration-300 cursor-pointer text-left group relative overflow-hidden shadow-lg`}
                 >
-                  <div className="flex items-center justify-between mb-3 lg:mb-4">
-                    <IconComponent className={`w-6 h-6 lg:w-8 lg:h-8 ${
+                  {/* Background Glow */}
+                  <div className={`absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    !darkMode && 'mix-blend-multiply'
+                  }`} />
+                  
+                  <div className="relative z-10 flex items-center justify-between mb-2">
+                    <IconComponent className={`w-5 h-5 ${
                       darkMode ? 'text-cyan-400' : 'text-cyan-600'
                     }`} />
-                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                    <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
                       {stat.change}
                     </span>
                   </div>
-                  <div className={`text-xl lg:text-2xl font-bold ${
-                    darkMode ? 'text-white' : 'text-black'
-                  } mb-1`}>{stat.value}</div>
-                  <div className={`text-xs lg:text-sm ${
-                    darkMode ? 'text-purple-300/70' : 'text-purple-600/70'
+                  <div className={`relative z-10 text-lg font-bold ${
+                    darkMode ? 'text-white' : 'text-gray-900'
+                  } mb-0.5`}>{stat.value}</div>
+                  <div className={`relative z-10 text-xs ${
+                    darkMode ? 'text-cyan-200/70' : 'text-cyan-700/70'
                   } leading-tight`}>{stat.label}</div>
                 </motion.button>
               )
@@ -446,61 +517,76 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
           </div>
         </motion.section>
 
-        {/* Today's Schedule - Responsif */}
+        {/* Today's Schedule */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.1 }}
-          className="max-w-7xl mx-auto mb-6 lg:mb-8"
+          transition={{ delay: 0.7 }}
+          className="max-w-7xl mx-auto mb-6"
         >
-          <div className={`${
-            darkMode ? 'bg-white/5' : 'bg-black/5'
-          } backdrop-blur-md rounded-xl lg:rounded-2xl p-4 lg:p-6 border ${
-            darkMode ? 'border-white/10' : 'border-black/10'
-          }`}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 lg:mb-4 gap-2">
-              <h3 className={`text-lg lg:text-xl font-bold ${
-                darkMode ? 'text-white' : 'text-black'
-              }`}>Jadwal Hari Ini</h3>
-              <span className={`text-sm ${
-                darkMode ? 'text-purple-300' : 'text-purple-600'
-              }`}>{new Date().toLocaleDateString('id-ID', { weekday: 'long' })}</span>
-            </div>
-            <div className="space-y-2 lg:space-y-3">
-              {todaySchedule.length > 0 ? (
-                todaySchedule.map((item, index) => (
-                  <motion.div
-                    key={index}
-                    whileHover={{ scale: 1.02 }}
-                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg ${
-                      darkMode ? 'bg-white/5' : 'bg-black/5'
-                    } gap-2`}
-                  >
-                    <div className="flex-1">
-                      <div className={`font-semibold text-sm lg:text-base ${
-                        darkMode ? 'text-white' : 'text-black'
-                      }`}>{item.course}</div>
-                      <div className={`text-xs lg:text-sm ${
-                        darkMode ? 'text-purple-300' : 'text-purple-600'
-                      }`}>{item.room}</div>
-                    </div>
-                    <div className={`text-sm font-mono ${
-                      darkMode ? 'text-cyan-400' : 'text-cyan-600'
-                    }`}>{item.time}</div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className={`text-center py-4 ${
-                  darkMode ? 'text-purple-300/70' : 'text-purple-600/70'
-                }`}>
-                  Tidak ada jadwal kuliah hari ini 🎉
+          <div className="relative">
+            {/* Background Glow */}
+            <div className={`absolute -inset-2 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl blur-lg opacity-30 ${
+              !darkMode && 'mix-blend-multiply'
+            }`} />
+            
+            {/* Main Card */}
+            <div className={`relative backdrop-blur-xl ${
+              darkMode ? 'bg-white/5' : 'bg-white/80'
+            } rounded-xl border ${
+              darkMode ? 'border-white/10' : 'border-gray-200'
+            } shadow-lg overflow-hidden`}>
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className={`text-base font-bold ${
+                    darkMode ? 'text-white' : 'text-gray-900'
+                  }`}>Jadwal Hari Ini</h3>
+                  <span className={`text-xs ${
+                    darkMode ? 'text-cyan-300' : 'text-cyan-600'
+                  }`}>
+                    {new Date().toLocaleDateString('id-ID', { weekday: 'long' })}
+                  </span>
                 </div>
-              )}
+                <div className="space-y-2">
+                  {todaySchedule.length > 0 ? (
+                    todaySchedule.map((item, index) => (
+                      <motion.div
+                        key={index}
+                        whileHover={{ scale: 1.02 }}
+                        className={`flex items-center justify-between p-3 rounded-lg ${
+                          darkMode ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'
+                        } border`}
+                      >
+                        <div className="flex-1">
+                          <div className={`font-semibold text-sm ${
+                            darkMode ? 'text-white' : 'text-gray-900'
+                          }`}>{item.course}</div>
+                          <div className={`text-xs ${
+                            darkMode ? 'text-cyan-200/70' : 'text-cyan-700/70'
+                          }`}>{item.room}</div>
+                        </div>
+                        <div className={`text-xs ${
+                          darkMode ? 'text-cyan-400 bg-cyan-500/10' : 'text-cyan-600 bg-cyan-100'
+                        } font-mono px-2 py-1 rounded-md`}>
+                          {item.time}
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className={`text-center py-4 ${
+                      darkMode ? 'text-cyan-200/70' : 'text-cyan-700/70'
+                    }`}>
+                      <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Tidak ada jadwal hari ini 🎉</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </motion.section>
 
-        {/* Main Navigation Grid - Responsif */}
+        {/* Main Navigation Grid */}
         <section className="max-w-7xl mx-auto">
           <motion.div
             variants={{
@@ -514,12 +600,12 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
             }}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6"
+            className="hidden lg:grid lg:grid-cols-3 gap-4"
           >
-            <DashboardCard
+            <CyberGlassCard
               href="/jadwal"
               title="Jadwal Kuliah"
-              icon={<Calendar className="w-6 h-6 lg:w-8 lg:h-8" />}
+              icon={<Calendar className="w-6 h-6" />}
               desc="Lihat jadwal perkuliahan mingguan"
               gradient="from-blue-500 to-cyan-600"
               index={0}
@@ -528,10 +614,10 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
               features={["Kalender Interaktif", "Pengingat Otomatis", "Export Schedule"]}
               darkMode={darkMode}
             />
-            <DashboardCard
+            <CyberGlassCard
               href="/forum"
               title="Forum Diskusi"
-              icon={<MessageCircle className="w-6 h-6 lg:w-8 lg:h-8" />}
+              icon={<MessageCircle className="w-6 h-6" />}
               desc="Berbincang dan berdiskusi bersama teman"
               gradient="from-purple-500 to-pink-600"
               index={1}
@@ -540,10 +626,10 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
               features={["Diskusi Real-time", "Share File", "Thread Terorganisir"]}
               darkMode={darkMode}
             />
-            <DashboardCard
+            <CyberGlassCard
               href="/struktur"
               title="Struktur Kelas"
-              icon={<Users className="w-6 h-6 lg:w-8 lg:h-8" />}
+              icon={<Users className="w-6 h-6" />}
               desc="Lihat struktur organisasi kelas"
               gradient="from-indigo-500 to-purple-600"
               index={2}
@@ -552,10 +638,10 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
               features={["Organigram Interaktif", "Kontak Dosen", "Team Roles"]}
               darkMode={darkMode}
             />
-            <DashboardCard
+            <CyberGlassCard
               href="/profil"
               title="Profil Anggota"
-              icon={<User className="w-6 h-6 lg:w-8 lg:h-8" />}
+              icon={<User className="w-6 h-6" />}
               desc="Kenali teman sekelas dan lihat biodata"
               gradient="from-pink-500 to-rose-600"
               index={3}
@@ -564,10 +650,10 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
               features={["Profil 3D", "Social Links", "Skills & Hobbies"]}
               darkMode={darkMode}
             />
-            <DashboardCard
+            <CyberGlassCard
               href="/album"
               title="Album Foto"
-              icon={<Image className="w-6 h-6 lg:w-8 lg:h-8" />}
+              icon={<ImageIcon className="w-6 h-6" />}
               desc="Koleksi foto kegiatan kelas"
               gradient="from-violet-500 to-blue-600"
               index={4}
@@ -576,10 +662,10 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
               features={["Gallery Modern", "Photo Tags", "Memory Timeline"]}
               darkMode={darkMode}
             />
-            <DashboardCard
+            <CyberGlassCard
               href="/pengumuman"
               title="Pengumuman"
-              icon={<Bell className="w-6 h-6 lg:w-8 lg:h-8" />}
+              icon={<Bell className="w-6 h-6" />}
               desc="Informasi terbaru dan pemberitahuan"
               gradient="from-amber-500 to-orange-600"
               index={5}
@@ -589,32 +675,105 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
               darkMode={darkMode}
             />
           </motion.div>
+
+          {/* Mobile Layout */}
+          <motion.div
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.08
+                }
+              }
+            }}
+            initial="hidden"
+            animate="visible"
+            className="lg:hidden grid grid-cols-3 grid-rows-2 gap-2"
+          >
+            <MobileCyberCard
+              href="/jadwal"
+              title="Jadwal"
+              icon={<Calendar className="w-4 h-4" />}
+              gradient="from-blue-500 to-cyan-600"
+              index={0}
+              darkMode={darkMode}
+            />
+            <MobileCyberCard
+              href="/forum"
+              title="Forum"
+              icon={<MessageCircle className="w-4 h-4" />}
+              gradient="from-purple-500 to-pink-600"
+              index={1}
+              darkMode={darkMode}
+            />
+            <MobileCyberCard
+              href="/struktur"
+              title="Struktur"
+              icon={<Users className="w-4 h-4" />}
+              gradient="from-indigo-500 to-purple-600"
+              index={2}
+              darkMode={darkMode}
+            />
+            <MobileCyberCard
+              href="/profil"
+              title="Profil"
+              icon={<User className="w-4 h-4" />}
+              gradient="from-pink-500 to-rose-600"
+              index={3}
+              darkMode={darkMode}
+            />
+            <MobileCyberCard
+              href="/album"
+              title="Album"
+              icon={<ImageIcon className="w-4 h-4" />}
+              gradient="from-violet-500 to-blue-600"
+              index={4}
+              darkMode={darkMode}
+            />
+            <MobileCyberCard
+              href="/pengumuman"
+              title="Pengumuman"
+              icon={<Bell className="w-4 h-4" />}
+              gradient="from-amber-500 to-orange-600"
+              index={5}
+              darkMode={darkMode}
+            />
+          </motion.div>
         </section>
 
-        {/* Bottom Actions - Responsif */}
+        {/* Bottom Actions */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
-          className="max-w-7xl mx-auto mt-8 lg:mt-12 flex items-center justify-between gap-3 lg:gap-4"
+          transition={{ delay: 0.9 }}
+          className="max-w-7xl mx-auto mt-6 flex items-center justify-between gap-3"
         >
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleLogout}
-            className="group flex items-center gap-2 lg:gap-3 bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-400/30 px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-300 text-purple-200 hover:text-red-300 backdrop-blur-md text-sm lg:text-base flex-1 max-w-[48%] justify-center"
+            className={`group flex items-center gap-2 ${
+              darkMode ? 'bg-white/5 hover:bg-red-500/20 border-white/10 hover:border-red-400/30' : 'bg-white hover:bg-red-50 border-gray-200 hover:border-red-200'
+            } border px-4 py-2 rounded-xl transition-all duration-300 ${
+              darkMode ? 'text-cyan-200 hover:text-red-300' : 'text-gray-700 hover:text-red-600'
+            } backdrop-blur-md text-sm flex-1 max-w-[48%] justify-center shadow-lg`}
           >
-            <LogOut className="w-4 h-4 lg:w-5 lg:h-5 group-hover:rotate-180 transition-transform" />
-            <span className="font-semibold">Keluar Kelas</span>
+            <LogOut className="w-4 h-4 group-hover:rotate-180 transition-transform" />
+            <span className="font-semibold">Keluar</span>
           </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowSettings(true)}
-            className="group flex items-center gap-2 lg:gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 px-4 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl transition-all duration-300 text-purple-200 hover:text-white backdrop-blur-md text-sm lg:text-base flex-1 max-w-[48%] justify-center"
+            className={`group flex items-center gap-2 ${
+              darkMode ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20' : 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300'
+            } border px-4 py-2 rounded-xl transition-all duration-300 ${
+              darkMode ? 'text-cyan-200 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+            } backdrop-blur-md text-sm flex-1 max-w-[48%] justify-center shadow-lg`}
           >
-            <Settings className="w-4 h-4 lg:w-5 lg:h-5 group-hover:rotate-90 transition-transform" />
+            <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform" />
             <span className="font-semibold">Pengaturan</span>
           </motion.button>
         </motion.div>
@@ -636,45 +795,55 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
                 className={`${
                   darkMode ? 'bg-slate-800' : 'bg-white'
                 } rounded-2xl p-6 w-96 max-w-[90vw] border ${
-                  darkMode ? 'border-white/10' : 'border-black/10'
-                }`}
+                  darkMode ? 'border-white/10' : 'border-gray-200'
+                } shadow-2xl`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-xl font-bold ${
-                    darkMode ? 'text-white' : 'text-black'
+                    darkMode ? 'text-white' : 'text-gray-900'
                   }`}>Pengaturan</h3>
                   <button
                     onClick={() => setShowSettings(false)}
                     className={`p-2 rounded-full ${
-                      darkMode ? 'hover:bg-white/10' : 'hover:bg-black/10'
+                      darkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'
                     }`}
                   >
-                    <X size={20} className={darkMode ? 'text-white' : 'text-black'} />
+                    <X size={20} className={darkMode ? 'text-white' : 'text-gray-900'} />
                   </button>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className={darkMode ? 'text-white' : 'text-black'}>Mode Gelap</span>
-                    <button
+                    <span className={darkMode ? 'text-white' : 'text-gray-900'}>Mode Tampilan</span>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={toggleDarkMode}
-                      className={`w-12 h-6 rounded-full transition-all ${
-                        darkMode ? 'bg-cyan-500' : 'bg-gray-300'
-                      }`}
+                      className={`relative w-16 h-8 rounded-full transition-all duration-300 ${
+                        darkMode ? 'bg-gradient-to-r from-cyan-500 to-purple-600' : 'bg-gradient-to-r from-amber-400 to-orange-500'
+                      } p-1`}
                     >
                       <motion.div
-                        animate={{ x: darkMode ? 24 : 0 }}
-                        className="w-6 h-6 bg-white rounded-full shadow-lg"
-                      />
-                    </button>
+                        animate={{ x: darkMode ? 32 : 0 }}
+                        className={`w-6 h-6 rounded-full shadow-lg flex items-center justify-center ${
+                          darkMode ? 'bg-slate-900' : 'bg-white'
+                        }`}
+                      >
+                        {darkMode ? (
+                          <Moon className="w-3 h-3 text-cyan-400" />
+                        ) : (
+                          <Sun className="w-3 h-3 text-amber-500" />
+                        )}
+                      </motion.div>
+                    </motion.button>
                   </div>
 
                   <div className={`p-3 rounded-lg ${
-                    darkMode ? 'bg-white/5' : 'bg-black/5'
+                    darkMode ? 'bg-white/5' : 'bg-gray-100'
                   }`}>
                     <div className={`text-sm ${
-                      darkMode ? 'text-purple-300' : 'text-purple-600'
+                      darkMode ? 'text-cyan-300' : 'text-cyan-700'
                     }`}>
                       <strong>Fitur Aktif:</strong>
                       <ul className="mt-2 space-y-1">
@@ -692,37 +861,37 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
           )}
         </AnimatePresence>
 
-        {/* Footer - Responsif */}
+        {/* Footer */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="max-w-7xl mx-auto mt-8 -mb-8 text-center"
+          transition={{ delay: 1.2 }}
+          className="max-w-7xl mx-auto mt-6 -mb-8 text-center"
         >
           <div className={`${
-            darkMode ? 'bg-white/5' : 'bg-black/5'
-          } backdrop-blur-md rounded-xl lg:rounded-2xl p-4 lg:p-6 border ${
-            darkMode ? 'border-white/10' : 'border-black/10'
-          }`}>
-            <div className="flex items-center justify-center gap-2 mb-2 lg:mb-3">
-              <Sparkles className={`w-4 h-4 lg:w-5 lg:h-5 ${
+            darkMode ? 'bg-white/5' : 'bg-white/80'
+          } backdrop-blur-md rounded-xl p-4 border ${
+            darkMode ? 'border-white/10' : 'border-gray-200'
+          } shadow-lg`}>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles className={`w-4 h-4 ${
                 darkMode ? 'text-cyan-400' : 'text-cyan-600'
               }`} />
-              <span className={`text-xs lg:text-sm ${
-                darkMode ? 'text-purple-300/70' : 'text-purple-600/70'
+              <span className={`text-xs ${
+                darkMode ? 'text-cyan-200/70' : 'text-cyan-700/70'
               }`}>Sistem Terkini - Semua Fitur Aktif</span>
-              <Sparkles className={`w-4 h-4 lg:w-5 lg:h-5 ${
+              <Sparkles className={`w-4 h-4 ${
                 darkMode ? 'text-cyan-400' : 'text-cyan-600'
               }`} />
             </div>
-            <p className={`text-xs lg:text-sm ${
-              darkMode ? 'text-purple-300/60' : 'text-purple-600/60'
+            <p className={`text-xs ${
+              darkMode ? 'text-cyan-200/60' : 'text-cyan-700/60'
             }`}>
-              Build by Rey Langko • Pendidikan Informatika FKIP 2023 • 
+              Build by Rey Langko • PI23A • 
               <span className={`ml-1 ${
                 darkMode ? 'text-cyan-400' : 'text-cyan-600'
-              }`}>v2.0 Connected</span>
-              <span className="ml-2 text-xs opacity-50">✨💻</span>
+              }`}>v2.0</span>
+              <span className="ml-1 text-xs opacity-50">✨</span>
             </p>
           </div>
         </motion.div>
@@ -731,8 +900,8 @@ Promise.resolve().then(() => setTodaySchedule(filtered))
   )
 }
 
-// Enhanced Dashboard Card Component - Responsif
-function DashboardCard({
+// Enhanced Cyber Glass Card Component
+function CyberGlassCard({
   href,
   title,
   icon,
@@ -758,7 +927,7 @@ function DashboardCard({
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 30, scale: 0.9 },
+        hidden: { opacity: 0, y: 20, scale: 0.9 },
         visible: { opacity: 1, y: 0, scale: 1 }
       }}
       whileHover={{ 
@@ -771,22 +940,22 @@ function DashboardCard({
       className="relative group cursor-pointer"
     >
       {/* Animated Border Glow */}
-      <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradient} rounded-2xl lg:rounded-3xl blur opacity-75 group-hover:opacity-100 transition duration-300`}></div>
+      <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradient} rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300`}></div>
       
       {/* Main Card */}
       <div className={`relative ${
         darkMode ? 'bg-slate-900/80' : 'bg-white/80'
-      } backdrop-blur-xl rounded-xl lg:rounded-2xl p-4 lg:p-6 border ${
-        darkMode ? 'border-white/10 group-hover:border-white/20' : 'border-black/10 group-hover:border-black/20'
-      } transition-all duration-300 h-full`}>
+      } backdrop-blur-xl rounded-xl p-4 border ${
+        darkMode ? 'border-white/10 group-hover:border-white/20' : 'border-gray-200 group-hover:border-gray-300'
+      } transition-all duration-300 h-full shadow-lg`}>
         <Link href={href}>
           <div className="flex flex-col h-full">
             {/* Icon Section */}
-            <div className="flex items-center justify-between mb-3 lg:mb-4">
+            <div className="flex items-center justify-between mb-3">
               <motion.div
                 whileHover={{ rotate: 360, scale: 1.1 }}
                 transition={{ duration: 0.6 }}
-                className={`w-10 h-10 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}
+                className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}
               >
                 {icon}
               </motion.div>
@@ -798,26 +967,26 @@ function DashboardCard({
                 className={`${
                   darkMode ? 'bg-white/10' : 'bg-black/10'
                 } rounded-full px-2 py-1 text-xs ${
-                  darkMode ? 'text-purple-300' : 'text-purple-600'
+                  darkMode ? 'text-cyan-300' : 'text-cyan-600'
                 } border ${
-                  darkMode ? 'border-white/10' : 'border-black/10'
+                  darkMode ? 'border-white/10' : 'border-gray-300'
                 }`}
               >
-                <Zap className="w-3 h-3 inline mr-1" />
+                <Zap className="w-2 h-2 inline mr-1" />
                 Cepat
               </motion.div>
             </div>
 
             {/* Content */}
             <div className="flex-1">
-              <h3 className={`text-base lg:text-xl font-bold ${
-                darkMode ? 'text-white' : 'text-black'
-              } mb-1 lg:mb-2 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-purple-300 group-hover:to-cyan-300 group-hover:bg-clip-text transition-all leading-tight`}>
+              <h3 className={`text-base font-bold ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              } mb-1 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-purple-300 group-hover:bg-clip-text transition-all leading-tight`}>
                 {title}
               </h3>
-              <p className={`text-xs lg:text-sm ${
-                darkMode ? 'text-purple-300/80' : 'text-purple-600/80'
-              } mb-3 lg:mb-4 leading-relaxed`}>
+              <p className={`text-xs ${
+                darkMode ? 'text-cyan-200/80' : 'text-cyan-700/80'
+              } mb-3 leading-relaxed`}>
                 {desc}
               </p>
 
@@ -828,7 +997,7 @@ function DashboardCard({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="space-y-1 lg:space-y-2"
+                    className="space-y-1"
                   >
                     {features.map((feature, i) => (
                       <motion.div
@@ -836,11 +1005,11 @@ function DashboardCard({
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.1 }}
-                        className={`flex items-center gap-2 text-xs ${
-                          darkMode ? 'text-purple-400' : 'text-purple-500'
+                        className={`flex items-center gap-1 text-xs ${
+                          darkMode ? 'text-cyan-400' : 'text-cyan-500'
                         }`}
                       >
-                        <div className="w-1.5 h-1.5 bg-current rounded-full"></div>
+                        <div className="w-1 h-1 bg-current rounded-full"></div>
                         {feature}
                       </motion.div>
                     ))}
@@ -850,22 +1019,78 @@ function DashboardCard({
             </div>
 
             {/* CTA Arrow */}
-            <div className={`flex items-center justify-between mt-3 lg:mt-4 pt-3 lg:pt-4 border-t ${
-              darkMode ? 'border-white/10 group-hover:border-white/20' : 'border-black/10 group-hover:border-black/20'
+            <div className={`flex items-center justify-between mt-3 pt-3 border-t ${
+              darkMode ? 'border-white/10 group-hover:border-white/20' : 'border-gray-200 group-hover:border-gray-300'
             } transition-colors`}>
               <span className={`text-xs ${
-                darkMode ? 'text-purple-400/60 group-hover:text-purple-300' : 'text-purple-500/60 group-hover:text-purple-600'
+                darkMode ? 'text-cyan-400/60 group-hover:text-cyan-300' : 'text-cyan-600/60 group-hover:text-cyan-500'
               } transition-colors`}>
-                Akses sekarang
+                Akses
               </span>
               <motion.div
                 animate={{ x: activeHover === index ? 3 : 0 }}
-                className={darkMode ? 'text-purple-400 group-hover:text-cyan-400' : 'text-purple-500 group-hover:text-cyan-500'}
+                className={darkMode ? 'text-cyan-400 group-hover:text-cyan-300' : 'text-cyan-500 group-hover:text-cyan-400'}
               >
                 →
               </motion.div>
             </div>
           </div>
+        </Link>
+      </div>
+    </motion.div>
+  )
+}
+
+// Mobile Cyber Card Component
+function MobileCyberCard({
+  href,
+  title,
+  icon,
+  gradient,
+  index,
+  darkMode
+}: {
+  href: string
+  title: string
+  icon: React.ReactNode
+  gradient: string
+  index: number
+  darkMode: boolean
+}) {
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, scale: 0.8 },
+        visible: { opacity: 1, scale: 1 }
+      }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="relative group cursor-pointer"
+    >
+      {/* Animated Border Glow */}
+      <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradient} rounded-lg blur opacity-60 group-hover:opacity-100 transition duration-300`}></div>
+      
+      {/* Main Card */}
+      <div className={`relative ${
+        darkMode ? 'bg-slate-900/90' : 'bg-white/90'
+      } backdrop-blur-xl rounded-lg p-2 border ${
+        darkMode ? 'border-white/10 group-hover:border-white/20' : 'border-gray-200 group-hover:border-gray-300'
+      } transition-all duration-300 h-16 flex flex-col items-center justify-center text-center shadow-lg`}>
+        <Link href={href} className="w-full h-full flex flex-col items-center justify-center">
+          {/* Icon */}
+          <motion.div
+            whileHover={{ rotate: 15, scale: 1.1 }}
+            className={`w-6 h-6 rounded-md bg-gradient-to-br ${gradient} flex items-center justify-center shadow-md mb-0.5`}
+          >
+            {icon}
+          </motion.div>
+          
+          {/* Title */}
+          <h3 className={`text-xs font-bold ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          } group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-purple-300 group-hover:bg-clip-text transition-all leading-tight`}>
+            {title}
+          </h3>
         </Link>
       </div>
     </motion.div>

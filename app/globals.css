@@ -149,3 +149,13 @@
   }
 }
 
+/* 🌙 Hilangkan scrollbar tapi tetap bisa scroll */
+html, body {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* Internet Explorer / Edge lama */
+}
+
+html::-webkit-scrollbar, 
+body::-webkit-scrollbar {
+  display: none;              /* Chrome, Safari, Edge baru */
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { Send, ArrowLeft, MessageCircle, Smile, Users, TrendingUp, Zap, Heart, Trash2 } from "lucide-react"
+import { Send, ArrowLeft, MessageCircle, Smile, Users, Zap, Heart, Trash2, Sparkles, Target } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { db } from "@/lib/firebaseConfig"
@@ -34,25 +34,112 @@ export default function ForumPage() {
   const [pesan, setPesan] = useState<Pesan[]>([])
   const [input, setInput] = useState("")
   const [nama, setNama] = useState("Mahasiswa PI23A")
-  const [tema, setTema] = useState<"dark" | "light" | "galaxy">("dark")
   const [showEmoji, setShowEmoji] = useState(false)
   const [onlineUsers, setOnlineUsers] = useState(24)
   const [activeUsers, setActiveUsers] = useState(12)
   const [isTyping, setIsTyping] = useState(false)
   const [typingUser, setTypingUser] = useState("")
+  const [isMounted, setIsMounted] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const notifRef = useRef(false)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  // 🔹 Initialize user name from localStorage
+  // Fix hydration
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedName = localStorage.getItem("namaUser") || "Mahasiswa PI23A"
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setNama(savedName)
+  // Hindari pemanggilan setState langsung secara sinkron
+  queueMicrotask(() => setIsMounted(true))
+
+  if (typeof window !== "undefined") {
+    const savedName = localStorage.getItem("namaUser") || "Mahasiswa PI23A"
+    // Aman juga karena dipanggil asynchronous
+    queueMicrotask(() => setNama(savedName))
+  }
+}, [])
+
+  // Animated Background Effect
+  useEffect(() => {
+    if (!isMounted || !canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+
+    const particles: Array<{
+      x: number
+      y: number
+      size: number
+      speedX: number
+      speedY: number
+      color: string
+    }> = []
+
+    const colors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
+
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 1 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.2,
+        speedY: (Math.random() - 0.5) * 0.2,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      })
     }
-  }, [])
+
+    const animate = () => {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.02)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      particles.forEach((particle, index) => {
+        particle.x += particle.speedX
+        particle.y += particle.speedY
+
+        if (particle.x > canvas.width) particle.x = 0
+        if (particle.x < 0) particle.x = canvas.width
+        if (particle.y > canvas.height) particle.y = 0
+        if (particle.y < 0) particle.y = canvas.height
+
+        ctx.beginPath()
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+        ctx.fillStyle = particle.color
+        ctx.globalAlpha = 0.2
+        ctx.fill()
+
+        for (let j = index + 1; j < particles.length; j++) {
+          const dx = particle.x - particles[j].x
+          const dy = particle.y - particles[j].y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+
+          if (distance < 50) {
+            ctx.beginPath()
+            ctx.strokeStyle = particle.color
+            ctx.globalAlpha = 0.05 * (1 - distance / 50)
+            ctx.lineWidth = 0.2
+            ctx.moveTo(particle.x, particle.y)
+            ctx.lineTo(particles[j].x, particles[j].y)
+            ctx.stroke()
+          }
+        }
+      })
+
+      requestAnimationFrame(animate)
+    }
+
+    animate()
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [isMounted])
 
   // 🔹 Ambil pesan realtime dari Firestore
   useEffect(() => {
@@ -71,7 +158,7 @@ export default function ForumPage() {
         const lastMsg = data[data.length - 1]
         if (lastMsg.nama !== nama && notifRef.current) {
           toast.info(`💬 ${lastMsg.nama} mengirim pesan baru!`, {
-            theme: tema === "dark" ? "dark" : "light",
+            theme: "dark",
             position: "bottom-right",
             className: "backdrop-blur-lg",
           })
@@ -81,7 +168,7 @@ export default function ForumPage() {
       setPesan(data)
     })
     return () => unsubscribe()
-  }, [nama, tema, pesan.length])
+  }, [nama, pesan.length])
 
   // 🔹 Auto scroll ke bawah
   useEffect(() => {
@@ -189,364 +276,369 @@ export default function ForumPage() {
     inputRef.current?.focus()
   }
 
-  // 🌈 Tema styling
-  const getThemeStyles = () => {
-    switch (tema) {
-      case "light":
-        return {
-          background: "bg-gradient-to-br from-white via-blue-50 to-purple-50",
-          border: "border-gray-200",
-          text: "text-gray-900",
-          secondaryText: "text-gray-600",
-          bubbleUser: "bg-gradient-to-r from-blue-500 to-purple-600 text-white",
-          bubbleOther: "bg-gray-100 text-gray-900 border border-gray-200",
-          input: "bg-white border-gray-300 text-gray-900 placeholder-gray-500",
-        }
-      case "galaxy":
-        return {
-          background: "bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900",
-          border: "border-purple-500/30",
-          text: "text-white",
-          secondaryText: "text-purple-200",
-          bubbleUser: "bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white",
-          bubbleOther: "bg-white/10 backdrop-blur-md text-purple-100 border border-white/10",
-          input: "bg-white/10 border-white/20 text-white placeholder-purple-300",
-        }
-      default: // dark
-        return {
-          background: "bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-950",
-          border: "border-purple-700/30",
-          text: "text-white",
-          secondaryText: "text-purple-300",
-          bubbleUser: "bg-gradient-to-r from-purple-600 to-pink-600 text-white",
-          bubbleOther: "bg-white/10 backdrop-blur-md text-purple-100",
-          input: "bg-white/10 border-white/20 text-white placeholder-purple-300",
-        }
-    }
-  }
-
-  const themeStyles = getThemeStyles()
   // Nilai waktu statis saat komponen pertama kali dimount
   const [now] = useState(() => Date.now())
 
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-cyan-300">Memuat forum...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <main className={`min-h-screen transition-all duration-500 ${themeStyles.background} ${themeStyles.text} px-4 pt-8 pb-20`}>
-      <ToastContainer
-        toastClassName="backdrop-blur-lg bg-white/10 border border-white/20"
-        progressClassName={tema === "light" ? "bg-gray-600" : "bg-white"}
+    <main className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
+      {/* Animated Canvas Background */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
       />
 
-      {/* Header Modern */}
-      <motion.div
-        initial={{ y: -30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.7, type: "spring" }}
-        className="max-w-6xl mx-auto"
-      >
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-6 mb-8">
-          {/* Judul dan Info */}
-          <div className="text-center lg:text-left">
-            <motion.h1 
-              className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent flex items-center justify-center lg:justify-start gap-3 mb-3"
+      <ToastContainer
+        toastClassName="backdrop-blur-lg bg-white/10 border border-white/20"
+        progressClassName="bg-white"
+      />
+
+      <div className="relative z-10 px-4 sm:px-6 pb-20 pt-4">
+        {/* Header - Cyber Glass Style */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-7xl mx-auto"
+        >
+          <div className="flex items-center justify-between mb-6">
+            {/* Logo & Title - Compact */}
+            <motion.div
+              className="flex items-center gap-3"
               whileHover={{ scale: 1.02 }}
             >
-              <motion.div
-                animate={{ rotate: [0, -5, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              >
-                <MessageCircle className="text-pink-400" size={40} />
-              </motion.div>
-              Forum PI23A
-            </motion.h1>
-            <p className={`text-lg ${themeStyles.secondaryText} mb-4`}>
-              Tempat ngobrol, diskusi, dan berbagi ilmu bersama teman seperjuangan 🚀
-            </p>
-            
-            {/* Stats */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-4 text-sm">
-              <motion.div 
-                className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-2xl border border-white/10"
-                whileHover={{ scale: 1.05 }}
-              >
-                <Users size={16} className="text-green-400" />
-                <span>{onlineUsers} Online</span>
-              </motion.div>
-              <motion.div 
-                className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-2xl border border-white/10"
-                whileHover={{ scale: 1.05 }}
-              >
-                <Zap size={16} className="text-yellow-400" />
-                <span>{activeUsers} Active</span>
-              </motion.div>
-              <motion.div 
-                className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-2xl border border-white/10"
-                whileHover={{ scale: 1.05 }}
-              >
-                <TrendingUp size={16} className="text-blue-400" />
-                <span>{pesan.length} Messages</span>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Controls - PERBAIKAN: Selalu horisontal */}
-          <div className="flex flex-row gap-3 w-full lg:w-auto justify-between items-center">
-            {/* Ganti Mode - Kiri */}
-            <motion.select
-              value={tema}
-              onChange={(e) => setTema(e.target.value as "dark" | "light" | "galaxy")}
-              className={`px-4 py-2 rounded-2xl backdrop-blur-sm border ${themeStyles.input} focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all flex-1 lg:flex-none`}
-              whileHover={{ scale: 1.05 }}
-              whileFocus={{ scale: 1.05 }}
-            >
-              <option value="dark">🌌 Dark Mode</option>
-              <option value="light">🌤 Light Mode</option>
-              <option value="galaxy">🌈 Galaxy Mode</option>
-            </motion.select>
-
-            {/* Kembali - Kanan */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex-1 lg:flex-none"
-            >
-              <Link
-                href="/kelas"
-                className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-4 py-2 rounded-2xl transition-all text-white font-semibold shadow-lg w-full justify-center"
-              >
-                <ArrowLeft size={18} />
-                <span className="whitespace-nowrap">Kembali</span>
-              </Link>
-            </motion.div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Chat Container */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="max-w-6xl mx-auto mt-8"
-      >
-        <div className={`rounded-3xl border backdrop-blur-xl shadow-2xl overflow-hidden ${themeStyles.background} ${themeStyles.border}`}>
-          
-          {/* Chat Header */}
-          <div className={`border-b ${themeStyles.border} p-6 backdrop-blur-lg`}>
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <MessageCircle className="text-purple-400" size={24} />
-                  Live Discussion
-                </h2>
-                <p className={`text-sm ${themeStyles.secondaryText} mt-1`}>
-                  Connected as <span className="font-semibold text-purple-400">{nama}</span>
-                </p>
-              </div>
-              <AnimatePresence>
-                {isTyping && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs ${themeStyles.bubbleOther}`}
-                  >
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                      className="w-2 h-2 bg-purple-500 rounded-full"
-                    />
-                    {typingUser} is typing...
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Messages Area */}
-          <div
-            ref={chatRef}
-            className="h-[60vh] overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-purple-500/30 scrollbar-track-transparent"
-          >
-            {pesan.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-20"
-              >
-                <motion.div
-                  animate={{ 
-                    scale: [1, 1.1, 1],
-                    rotate: [0, 5, -5, 0]
-                  }}
-                  transition={{ duration: 4, repeat: Infinity }}
-                  className="mb-4"
-                >
-                  <MessageCircle size={64} className="mx-auto opacity-50" />
-                </motion.div>
-                <h3 className={`text-xl font-semibold mb-2 ${themeStyles.secondaryText}`}>
-                  No messages yet
-                </h3>
-                <p className={themeStyles.secondaryText}>
-                  Be the first to start the conversation! 🌟
-                </p>
-              </motion.div>
-            ) : (
-              pesan.map((msg, index) => {
-                const isUser = msg.nama === nama
-                const bubbleStyle = isUser ? themeStyles.bubbleUser : themeStyles.bubbleOther
-                const showDate = index === 0 || 
-                  new Date(msg.timestamp?.toDate?.() || now).toDateString() !== 
-                  new Date(pesan[index - 1]?.timestamp?.toDate?.() || now).toDateString()
-
-                return (
-                  <div key={msg.id} className="space-y-2">
-                    {showDate && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center"
-                      >
-                        <span className={`text-xs px-3 py-1 rounded-full ${themeStyles.bubbleOther}`}>
-                          {new Date(msg.timestamp?.toDate?.() || now).toLocaleDateString('id-ID', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </span>
-                      </motion.div>
-                    )}
-                    
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`flex gap-3 group ${isUser ? "flex-row-reverse" : "flex-row"}`}
-                    >
-                      {/* Avatar */}
-                      <motion.div
-                        whileHover={{ scale: 1.1 }}
-                        className={`w-10 h-10 rounded-2xl flex items-center justify-center font-semibold text-sm ${
-                          isUser 
-                            ? "bg-gradient-to-r from-purple-500 to-pink-500" 
-                            : "bg-gradient-to-r from-blue-500 to-cyan-500"
-                        }`}
-                      >
-                        {msg.nama.charAt(0).toUpperCase()}
-                      </motion.div>
-
-                      {/* Message Bubble */}
-                      <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} max-w-[70%]`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-xs font-semibold ${isUser ? "text-purple-200" : themeStyles.secondaryText}`}>
-                            {msg.nama}
-                          </span>
-                          <span className={`text-xs ${themeStyles.secondaryText}`}>
-                            {msg.waktu}
-                          </span>
-                        </div>
-                        
-                        <div className="relative group/message">
-                          <motion.div
-                            whileHover={{ scale: 1.02 }}
-                            className={`rounded-3xl px-4 py-3 shadow-lg ${bubbleStyle} ${
-                              isUser ? "rounded-br-none" : "rounded-bl-none"
-                            }`}
-                          >
-                            <p className="text-sm leading-relaxed">{msg.isi}</p>
-                          </motion.div>
-
-                          {/* Message Actions */}
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            whileHover={{ opacity: 1, scale: 1 }}
-                            className={`absolute top-1/2 -translate-y-1/2 flex gap-1 ${
-                              isUser ? "left-0 -translate-x-12" : "right-0 translate-x-12"
-                            }`}
-                          >
-                            <motion.button
-                              whileHover={{ scale: 1.2 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => likePesan(msg.id, msg.likes || [])}
-                              className={`p-2 rounded-full backdrop-blur-sm ${
-                                msg.likes?.includes(nama) 
-                                  ? "bg-red-500/20 text-red-400" 
-                                  : "bg-white/10 text-white/60"
-                              }`}
-                            >
-                              <Heart 
-                                size={16} 
-                                fill={msg.likes?.includes(nama) ? "currentColor" : "none"} 
-                              />
-                              {msg.likes && msg.likes.length > 0 && (
-                                <span className="text-xs ml-1">{msg.likes.length}</span>
-                              )}
-                            </motion.button>
-                            
-                            {isUser && (
-                              <motion.button
-                                whileHover={{ scale: 1.2 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => hapusPesan(msg.id)}
-                                className="p-2 rounded-full backdrop-blur-sm bg-white/10 text-white/60 hover:text-red-400"
-                              >
-                                <Trash2 size={16} />
-                              </motion.button>
-                            )}
-                          </motion.div>
-                        </div>
-                      </div>
-                    </motion.div>
+              <div className="relative">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                  <div className="w-9 h-9 bg-slate-900/80 rounded-lg backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                    <MessageCircle className="text-cyan-400 w-5 h-5" />
                   </div>
-                )
-              })
-            )}
-          </div>
-
-          {/* Input Area */}
-          <div className={`border-t ${themeStyles.border} p-4 backdrop-blur-lg`}>
-            <div className="flex items-center gap-3">
-              {/* Emoji Picker Trigger */}
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setShowEmoji(!showEmoji)}
-                className={`p-3 rounded-2xl backdrop-blur-sm border ${themeStyles.input} hover:bg-white/20 transition-all`}
-              >
-                <Smile size={20} />
-              </motion.button>
-
-              {/* Message Input */}
-              <div className="flex-1 relative">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type your message here..."
-                  className={`w-full px-4 py-3 rounded-2xl backdrop-blur-sm border focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${themeStyles.input}`}
+                </div>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-2 border border-cyan-400/30 rounded-xl"
                 />
               </div>
+              
+              {/* Title Text */}
+              <div>
+                <h1 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  Forum Diskusi
+                </h1>
+                <p className="text-xs text-cyan-200/80 mt-0.5">
+                  Live chat <b className="text-cyan-300">PI23A</b>
+                </p>
+              </div>
+            </motion.div>
 
-              {/* Send Button */}
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={kirimPesan}
-                disabled={!input.trim()}
-                className={`p-3 rounded-2xl font-semibold transition-all ${
-                  input.trim()
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
-                    : "bg-white/10 text-white/40 cursor-not-allowed"
-                }`}
+            {/* Stats & Back Button */}
+            <div className="flex items-center gap-4">
+              {/* Stats */}
+              <div className="hidden sm:flex items-center gap-3">
+                <motion.div 
+                  className="flex items-center gap-2 bg-white/5 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <Users size={14} className="text-green-400" />
+                  <span className="text-xs">{onlineUsers}</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center gap-2 bg-white/5 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <Zap size={14} className="text-yellow-400" />
+                  <span className="text-xs">{activeUsers}</span>
+                </motion.div>
+                <motion.div 
+                  className="flex items-center gap-2 bg-white/5 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <Target size={14} className="text-blue-400" />
+                  <span className="text-xs">{pesan.length}</span>
+                </motion.div>
+              </div>
+
+              {/* Back Button */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Send size={20} />
-              </motion.button>
+                <Link
+                  href="/kelas"
+                  className="flex items-center gap-2 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/30 px-3 py-2 rounded-xl transition-all duration-300 text-cyan-200 hover:text-cyan-300 backdrop-blur-md text-sm"
+                >
+                  <ArrowLeft size={16} />
+                  <span className="whitespace-nowrap">Kembali</span>
+                </Link>
+              </motion.div>
             </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+
+        {/* Main Chat Container */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="max-w-4xl mx-auto"
+        >
+          <div className="relative">
+            {/* Background Glow */}
+            <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-3xl blur-xl opacity-30" />
+            
+            {/* Main Card */}
+            <div className="relative backdrop-blur-2xl bg-white/5 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+              
+              {/* Chat Header */}
+              <div className="border-b border-white/10 p-4 backdrop-blur-lg">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      <MessageCircle className="text-cyan-400" size={20} />
+                      Live Discussion
+                    </h2>
+                    <p className="text-sm text-cyan-200/70 mt-0.5">
+                      Connected as <span className="font-semibold text-cyan-300">{nama}</span>
+                    </p>
+                  </div>
+                  <AnimatePresence>
+                    {isTyping && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="flex items-center gap-2 px-3 py-1 rounded-full text-xs bg-white/5 backdrop-blur-md border border-white/10"
+                      >
+                        <motion.div
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 1, repeat: Infinity }}
+                          className="w-2 h-2 bg-cyan-500 rounded-full"
+                        />
+                        {typingUser} is typing...
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Messages Area */}
+              <div
+                ref={chatRef}
+                className="h-[50vh] overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-cyan-500/30 scrollbar-track-transparent"
+              >
+                {pesan.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-16"
+                  >
+                    <motion.div
+                      animate={{ 
+                        scale: [1, 1.1, 1],
+                        rotate: [0, 5, -5, 0]
+                      }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className="mb-4"
+                    >
+                      <MessageCircle size={48} className="mx-auto opacity-50 text-cyan-400" />
+                    </motion.div>
+                    <h3 className="text-lg font-semibold mb-2 text-cyan-200">
+                      No messages yet
+                    </h3>
+                    <p className="text-cyan-200/70">
+                      Be the first to start the conversation! 🌟
+                    </p>
+                  </motion.div>
+                ) : (
+                  pesan.map((msg, index) => {
+                    const isUser = msg.nama === nama
+                    const showDate = index === 0 || 
+                      new Date(msg.timestamp?.toDate?.() || now).toDateString() !== 
+                      new Date(pesan[index - 1]?.timestamp?.toDate?.() || now).toDateString()
+
+                    return (
+                      <div key={msg.id} className="space-y-2">
+                        {showDate && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-center"
+                          >
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 backdrop-blur-md border border-white/10">
+                              {new Date(msg.timestamp?.toDate?.() || now).toLocaleDateString('id-ID', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </motion.div>
+                        )}
+                        
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className={`flex gap-3 group ${isUser ? "flex-row-reverse" : "flex-row"}`}
+                        >
+                          {/* Avatar */}
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-semibold text-xs ${
+                              isUser 
+                                ? "bg-gradient-to-r from-cyan-500 to-blue-500" 
+                                : "bg-gradient-to-r from-purple-500 to-pink-500"
+                            }`}
+                          >
+                            {msg.nama.charAt(0).toUpperCase()}
+                          </motion.div>
+
+                          {/* Message Bubble */}
+                          <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} max-w-[70%]`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs font-semibold ${isUser ? "text-cyan-300" : "text-purple-300"}`}>
+                                {msg.nama}
+                              </span>
+                              <span className="text-xs text-cyan-200/70">
+                                {msg.waktu}
+                              </span>
+                            </div>
+                            
+                            <div className="relative group/message">
+                              <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                className={`rounded-2xl px-3 py-2 shadow-lg ${
+                                  isUser 
+                                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-br-none" 
+                                    : "bg-white/10 backdrop-blur-md text-cyan-100 rounded-bl-none border border-white/10"
+                                }`}
+                              >
+                                <p className="text-sm leading-relaxed">{msg.isi}</p>
+                              </motion.div>
+
+                              {/* Message Actions */}
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                whileHover={{ opacity: 1, scale: 1 }}
+                                className={`absolute top-1/2 -translate-y-1/2 flex gap-1 ${
+                                  isUser ? "left-0 -translate-x-12" : "right-0 translate-x-12"
+                                }`}
+                              >
+                                <motion.button
+                                  whileHover={{ scale: 1.2 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() => likePesan(msg.id, msg.likes || [])}
+                                  className={`p-1.5 rounded-full backdrop-blur-sm ${
+                                    msg.likes?.includes(nama) 
+                                      ? "bg-red-500/20 text-red-400" 
+                                      : "bg-white/10 text-white/60"
+                                  }`}
+                                >
+                                  <Heart 
+                                    size={14} 
+                                    fill={msg.likes?.includes(nama) ? "currentColor" : "none"} 
+                                  />
+                                  {msg.likes && msg.likes.length > 0 && (
+                                    <span className="text-xs ml-0.5">{msg.likes.length}</span>
+                                  )}
+                                </motion.button>
+                                
+                                {isUser && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.2 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => hapusPesan(msg.id)}
+                                    className="p-1.5 rounded-full backdrop-blur-sm bg-white/10 text-white/60 hover:text-red-400"
+                                  >
+                                    <Trash2 size={14} />
+                                  </motion.button>
+                                )}
+                              </motion.div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* Input Area */}
+              <div className="border-t border-white/10 p-4 backdrop-blur-lg">
+                <div className="flex items-center gap-2">
+                  {/* Emoji Picker Trigger */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowEmoji(!showEmoji)}
+                    className="p-2 rounded-xl backdrop-blur-sm border border-white/10 bg-white/5 hover:bg-white/10 transition-all"
+                  >
+                    <Smile size={18} className="text-cyan-400" />
+                  </motion.button>
+
+                  {/* Message Input */}
+                  <div className="flex-1 relative">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={input}
+                      onChange={handleInputChange}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Type your message here..."
+                      className="w-full px-3 py-2 rounded-xl backdrop-blur-sm border border-white/10 bg-white/5 text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all text-sm"
+                    />
+                  </div>
+
+                  {/* Send Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={kirimPesan}
+                    disabled={!input.trim()}
+                    className={`p-2 rounded-xl font-semibold transition-all ${
+                      input.trim()
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg"
+                        : "bg-white/10 text-white/40 cursor-not-allowed"
+                    }`}
+                  >
+                    <Send size={18} />
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Footer Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="max-w-4xl mx-auto mt-4 text-center"
+        >
+          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs text-cyan-200/70">Real-time Chat System</span>
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+            </div>
+            <p className="text-xs text-cyan-200/60">
+              Powered by Reylangko • Kelas PI23A • 
+              <span className="text-cyan-400 ml-1">Live Connection</span>
+            </p>
+          </div>
+        </motion.div>
+      </div>
 
       {/* Emoji Picker */}
       <AnimatePresence>
@@ -555,13 +647,13 @@ export default function ForumPage() {
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="fixed bottom-24 left-4 z-50 shadow-2xl rounded-2xl overflow-hidden"
+            className="fixed bottom-20 left-4 z-50 shadow-2xl rounded-2xl overflow-hidden"
           >
             <EmojiPicker
               onEmojiClick={handleEmojiClick}
-              theme={tema === "dark" || tema === "galaxy" ? Theme.DARK : Theme.LIGHT}
-              width={350}
-              height={400}
+              theme={Theme.DARK}
+              width={300}
+              height={350}
             />
           </motion.div>
         )}

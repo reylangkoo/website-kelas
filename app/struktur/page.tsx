@@ -1,14 +1,106 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Users, ArrowLeft, Crown, Code, Paintbrush, GamepadIcon, Smartphone, Brain, BookOpen, Upload } from "lucide-react"
+import { Users, ArrowLeft, Crown, Code, Paintbrush, GamepadIcon, Smartphone, Brain, BookOpen, Upload, Sparkles } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState, useRef } from "react"
 
 export default function StrukturPage() {
+  const [isMounted, setIsMounted] = useState(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+ useEffect(() => {
+  // Jalankan async agar tidak dianggap sinkron oleh React
+  queueMicrotask(() => setIsMounted(true))
+}, [])
+
+  // Animated Background Effect
+  useEffect(() => {
+    if (!isMounted || !canvasRef.current) return
+
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+
+    const particles: Array<{
+      x: number
+      y: number
+      size: number
+      speedX: number
+      speedY: number
+      color: string
+    }> = []
+
+    const colors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
+
+    for (let i = 0; i < 50; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 1.2 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.2,
+        speedY: (Math.random() - 0.5) * 0.2,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      })
+    }
+
+    const animate = () => {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.03)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      particles.forEach((particle, index) => {
+        particle.x += particle.speedX
+        particle.y += particle.speedY
+
+        if (particle.x > canvas.width) particle.x = 0
+        if (particle.x < 0) particle.x = canvas.width
+        if (particle.y > canvas.height) particle.y = 0
+        if (particle.y < 0) particle.y = canvas.height
+
+        ctx.beginPath()
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+        ctx.fillStyle = particle.color
+        ctx.globalAlpha = 0.3
+        ctx.fill()
+
+        for (let j = index + 1; j < particles.length; j++) {
+          const dx = particle.x - particles[j].x
+          const dy = particle.y - particles[j].y
+          const distance = Math.sqrt(dx * dx + dy * dy)
+
+          if (distance < 60) {
+            ctx.beginPath()
+            ctx.strokeStyle = particle.color
+            ctx.globalAlpha = 0.1 * (1 - distance / 60)
+            ctx.lineWidth = 0.2
+            ctx.moveTo(particle.x, particle.y)
+            ctx.lineTo(particles[j].x, particles[j].y)
+            ctx.stroke()
+          }
+        }
+      })
+
+      requestAnimationFrame(animate)
+    }
+
+    animate()
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [isMounted])
+
   const struktur = [
     {
       jabatan: "Ketua Kelas",
-      nama: "Reymundo J. Langko",
+      nama: "Rey Langko",
       nim: "237111024",
       warna: "from-purple-500 via-pink-500 to-indigo-500",
       icon: Crown,
@@ -64,7 +156,7 @@ export default function StrukturPage() {
       nama: "Elsa Sin",
       nim: "237111008",
       warna: "from-indigo-500 via-purple-500 to-pink-500",
-      icon: Upload // atau UploadCloud jika tersedia
+      icon: Upload
     }
   ]
 
@@ -119,81 +211,91 @@ export default function StrukturPage() {
     }
   }
 
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 text-white relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-cyan-300">Memuat struktur...</p>
+        </div>
       </div>
+    )
+  }
 
-      <div className="relative z-10 px-4 sm:px-6 pt-6 pb-20">
-        {/* Header */}
+  return (
+    <main className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
+      {/* Animated Canvas Background */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+      />
+
+      <div className="relative z-10 px-4 sm:px-6 pb-20 pt-4">
+        {/* Header - Cyber Glass Style */}
         <motion.div
-          initial={{ y: -30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, type: "spring" }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
           className="max-w-7xl mx-auto"
         >
-          {/* Title dan Tombol dalam container terpisah */}
-          <div className="mb-6">
-            <div className="text-center lg:text-left">
-              <motion.h1 
-                className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent flex items-center justify-center lg:justify-start gap-3"
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <div className="relative">
-                  <Users className="text-cyan-400" size={32} />
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute -inset-2 border-2 border-cyan-400/30 rounded-full"
-                  />
-                </div>
-                <span>Struktur Kelas <span className="text-cyan-200">PI23A</span></span>
-              </motion.h1>
-              <motion.p 
-                className="text-lg text-purple-300/80 mt-3 max-w-2xl"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                Tim solid dengan semangat kolaborasi dalam setiap mata kuliah
-              </motion.p>
-            </div>
-          </div>
-          
-          {/* Tombol di bawah teks, align kanan */}
-          <div className="flex justify-end -mt-2">
+          <div className="flex items-center justify-between mb-6">
+            {/* Logo & Title - Compact */}
             <motion.div
-              whileHover={{ scale: 1.05, x: -5 }}
+              className="flex items-center gap-3"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="relative">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                  <div className="w-9 h-9 bg-slate-900/80 rounded-lg backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                    <Users className="text-cyan-400 w-5 h-5" />
+                  </div>
+                </div>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-2 border border-cyan-400/30 rounded-xl"
+                />
+              </div>
+              
+              {/* Title Text */}
+              <div>
+                <h1 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  Struktur Kelas
+                </h1>
+                <p className="text-xs text-cyan-200/80 mt-0.5">
+                  Organisasi <b className="text-cyan-300">PI23A</b>
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Back Button */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <Link
                 href="/kelas"
-                className="group flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 px-6 py-3 rounded-2xl transition-all duration-300 text-purple-200 hover:text-white backdrop-blur-md shadow-lg hover:shadow-purple-500/20"
+                className="flex items-center gap-2 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/30 px-3 py-2 rounded-xl transition-all duration-300 text-cyan-200 hover:text-cyan-300 backdrop-blur-md text-sm"
               >
-                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                <span className="font-semibold">Kembali</span>
+                <ArrowLeft size={16} />
+                <span className="whitespace-nowrap">Kembali</span>
               </Link>
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Ketua Kelas - Compact untuk Mobile */}
-        <section className="max-w-2xl mx-auto mb-12">
+        {/* Ketua Kelas */}
+        <section className="max-w-2xl mx-auto mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-center mb-6"
+            transition={{ delay: 0.3 }}
+            className="text-center mb-4"
           >
-            <h2 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+            <h2 className="text-lg font-bold bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
               Ketua Kelas
             </h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-cyan-500 mx-auto mt-2 rounded-full"></div>
+            <div className="w-20 h-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 mx-auto mt-1 rounded-full"></div>
           </motion.div>
 
           <motion.div
@@ -216,37 +318,37 @@ export default function StrukturPage() {
                   className="relative group cursor-pointer w-full max-w-xs"
                 >
                   {/* Gradient Border */}
-                  <div className={`absolute -inset-0.5 bg-gradient-to-r ${orang.warna} rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300`} />
+                  <div className={`absolute -inset-0.5 bg-gradient-to-r ${orang.warna} rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300`} />
                   
                   {/* Main Card */}
-                  <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-xl p-4 text-center border border-white/10 group-hover:border-white/20 transition-all duration-300">
+                  <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-lg p-4 text-center border border-white/10 group-hover:border-white/20 transition-all duration-300">
                     {/* Icon */}
                     <motion.div
                       whileHover={{ rotate: 360, scale: 1.1 }}
                       transition={{ duration: 0.6 }}
-                      className={`w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br ${orang.warna} flex items-center justify-center shadow-lg`}
+                      className={`w-10 h-10 mx-auto mb-2 rounded-lg bg-gradient-to-br ${orang.warna} flex items-center justify-center shadow-lg`}
                     >
-                      <IconComponent className="text-white" size={20} />
+                      <IconComponent className="text-white w-5 h-5" />
                     </motion.div>
 
                     {/* Name */}
-                    <h3 className="text-base font-bold text-white mb-1 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-purple-300 group-hover:to-cyan-300 group-hover:bg-clip-text transition-all">
+                    <h3 className="text-sm font-bold text-white mb-1 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-purple-300 group-hover:bg-clip-text transition-all">
                       {orang.nama.split(' ')[0]} {orang.nama.split(' ')[1]}
                     </h3>
 
                     {/* NIM */}
-                    <p className="text-purple-300/70 text-xs mb-2">
-                      NIM: {orang.nim}
+                    <p className="text-cyan-200/70 text-xs mb-1">
+                      {orang.nim}
                     </p>
 
                     {/* Position */}
-                    <p className="text-sm text-purple-300/80 font-medium italic">
+                    <p className="text-xs text-cyan-300/80 font-medium">
                       {orang.jabatan}
                     </p>
 
                     {/* Decorative Elements */}
-                    <div className="absolute top-3 right-3 w-2 h-2 bg-cyan-400 rounded-full opacity-60 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute bottom-3 left-3 w-2 h-2 bg-purple-400 rounded-full opacity-60 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-cyan-400 rounded-full opacity-60 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute bottom-2 left-2 w-1.5 h-1.5 bg-purple-400 rounded-full opacity-60 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </motion.div>
               )
@@ -254,29 +356,29 @@ export default function StrukturPage() {
           </motion.div>
         </section>
 
-        {/* Garis pemisah animasi */}
+        {/* Garis pemisah */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ delay: 0.6, duration: 1 }}
-          className="max-w-2xl mx-auto my-10 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"
+          transition={{ delay: 0.5, duration: 0.8 }}
+          className="max-w-2xl mx-auto my-6 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"
         />
 
-        {/* SIPEN - Grid 3x2 untuk Mobile */}
-        <section className="max-w-4xl mx-auto mb-12">
+        {/* SIPEN */}
+        <section className="max-w-4xl mx-auto mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="text-center mb-6"
+            transition={{ delay: 0.6 }}
+            className="text-center mb-4"
           >
-            <h2 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
+            <h2 className="text-lg font-bold bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
               Tim SIPEN
             </h2>
-            <p className="text-purple-300/70 text-sm mt-1">
-              7 penanggung jawab mata kuliah
+            <p className="text-cyan-200/70 text-xs mt-0.5">
+              {sipen.length} penanggung jawab mata kuliah
             </p>
-            <div className="w-20 h-1 bg-gradient-to-r from-cyan-500 to-purple-500 mx-auto mt-2 rounded-full"></div>
+            <div className="w-16 h-0.5 bg-gradient-to-r from-cyan-500 to-purple-500 mx-auto mt-1 rounded-full"></div>
           </motion.div>
 
           <motion.div
@@ -308,21 +410,21 @@ export default function StrukturPage() {
                       whileHover={{ rotate: 15, scale: 1.05 }}
                       className={`w-8 h-8 mb-2 rounded-lg bg-gradient-to-br ${item.warna} flex items-center justify-center shadow-lg`}
                     >
-                      <IconComponent className="text-white" size={16} />
+                      <IconComponent className="text-white w-4 h-4" />
                     </motion.div>
 
-                    {/* Mata Kuliah - lebih pendek */}
+                    {/* Mata Kuliah */}
                     <h4 className="text-xs font-semibold text-cyan-300 mb-1 line-clamp-2 leading-tight">
                       {item.matkul.split(' ')[0]}
                     </h4>
 
-                    {/* Nama - disingkat */}
+                    {/* Nama */}
                     <h3 className="font-bold text-white text-xs mb-1 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-purple-300 group-hover:to-cyan-300 group-hover:bg-clip-text transition-all leading-tight">
                       {item.nama.split(' ')[0]} {item.nama.split(' ')[1]}
                     </h3>
 
                     {/* NIM */}
-                    <p className="text-purple-300/70 text-[10px]">
+                    <p className="text-cyan-200/70 text-[10px]">
                       {item.nim}
                     </p>
                   </div>
@@ -332,36 +434,36 @@ export default function StrukturPage() {
           </motion.div>
         </section>
 
-        {/* Garis pemisah animasi */}
+        {/* Garis pemisah */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ delay: 0.9, duration: 1 }}
-          className="max-w-4xl mx-auto my-10 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"
+          transition={{ delay: 0.8, duration: 0.8 }}
+          className="max-w-4xl mx-auto my-6 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent"
         />
 
-        {/* Anggota Kelas - Tetap sama */}
+        {/* Anggota Kelas */}
         <section className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.0 }}
-            className="text-center mb-8"
+            transition={{ delay: 0.9 }}
+            className="text-center mb-4"
           >
-            <h2 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+            <h2 className="text-lg font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
               Anggota Kelas
             </h2>
-            <p className="text-purple-300/70 text-sm mt-1">
+            <p className="text-cyan-200/70 text-xs mt-0.5">
               {anggota.length} anggota aktif
             </p>
-            <div className="w-16 h-1 bg-gradient-to-r from-purple-500 to-cyan-500 mx-auto mt-2 rounded-full"></div>
+            <div className="w-12 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-500 mx-auto mt-1 rounded-full"></div>
           </motion.div>
 
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2"
           >
             {anggota.map((orang, i) => (
               <motion.div
@@ -376,20 +478,20 @@ export default function StrukturPage() {
                 className="group relative cursor-pointer"
               >
                 {/* Hover Effect Background */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-300" />
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition duration-300" />
                 
                 {/* Main Card */}
-                <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-3 hover:bg-white/10 hover:border-white/20 transition-all duration-300 shadow-lg hover:shadow-cyan-500/10">
+                <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-2 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
                   {/* Avatar Indicator */}
-                  <div className="w-2 h-2 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full mx-auto mb-2 opacity-60 group-hover:opacity-100 transition-opacity" />
+                  <div className="w-1.5 h-1.5 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full mx-auto mb-1 opacity-60 group-hover:opacity-100 transition-opacity" />
                   
                   {/* Name */}
-                  <p className="text-xs font-medium text-purple-200 group-hover:text-white transition-colors text-center line-clamp-2 leading-tight">
+                  <p className="text-xs font-medium text-cyan-200 group-hover:text-white transition-colors text-center line-clamp-2 leading-tight">
                     {orang.nama}
                   </p>
                   
                   {/* NIM */}
-                  <p className="text-[10px] text-purple-400/70 text-center mt-1">
+                  <p className="text-[10px] text-cyan-400/70 text-center mt-0.5">
                     {orang.nim}
                   </p>
                 </div>
@@ -398,16 +500,16 @@ export default function StrukturPage() {
           </motion.div>
         </section>
 
-        {/* Footer Stats - Compact */}
+        {/* Footer Stats */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.3 }}
-          className="max-w-2xl mx-auto mt-12 text-center"
+          transition={{ delay: 1.2 }}
+          className="max-w-2xl mx-auto mt-6 text-center"
         >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {[
-              { label: "Total Anggota", value: anggota.length  },
+              { label: "Total Anggota", value: anggota.length },
               { label: "Ketua Kelas", value: 1 },
               { label: "Tim SIPEN", value: sipen.length },
               { label: "Kelas", value: "PI23A" }
@@ -415,16 +517,36 @@ export default function StrukturPage() {
               <motion.div
                 key={i}
                 whileHover={{ scale: 1.05 }}
-                className="bg-white/5 backdrop-blur-md rounded-lg p-3 border border-white/10"
+                className="bg-white/5 backdrop-blur-md rounded-lg p-2 border border-white/10"
               >
-                <div className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                <div className="text-base font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                   {stat.value}
                 </div>
-                <div className="text-xs text-purple-300/70 mt-1">
+                <div className="text-xs text-cyan-200/70 mt-0.5">
                   {stat.label}
                 </div>
               </motion.div>
             ))}
+          </div>
+        </motion.div>
+
+        {/* Footer Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.4 }}
+          className="max-w-2xl mx-auto mt-4 text-center"
+        >
+          <div className="bg-white/5 backdrop-blur-md rounded-lg p-3 border border-white/10">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs text-cyan-200/70">Struktur Organisasi Kelas</span>
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+            </div>
+            <p className="text-xs text-cyan-200/60 ">
+              Pendidikan Informatika 2023 • 
+              <span className="text-cyan-400 ml-1">Team Gacor</span>
+            </p>
           </div>
         </motion.div>
       </div>

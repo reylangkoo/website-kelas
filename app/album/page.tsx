@@ -1,9 +1,11 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
-import { X, Upload, Trash2, Image as ImageIcon, Lock, Key, User, Shield, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Upload, Trash2, Image as ImageIcon, Lock, Key, User, Shield, Check, Grid3X3, Rows, Sparkles } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 interface Photo {
   id: string;
@@ -23,88 +25,115 @@ export default function AlbumPage() {
   const [classCode, setClassCode] = useState("");
   const [loginError, setLoginError] = useState("");
   const [classCodeError, setClassCodeError] = useState("");
-  // 🌐 Google OAuth
-const [isAuthenticating, setIsAuthenticating] = useState(false);
-const [authError, setAuthError] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [showManualUploadButton, setShowManualUploadButton] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [gridLayout, setGridLayout] = useState<"compact" | "comfortable">("comfortable");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-// 🔹 Tombol fallback manual jika file dialog tidak muncul otomatis
-const [showManualUploadButton, setShowManualUploadButton] = useState(false);
+  // Fix hydration
+  useEffect(() => {
+    setIsMounted(true);
+    
+    const isAdmin = localStorage.getItem("isAdmin");
+    if (isAdmin === "true") {
+      setIsAuthenticated(true);
+    }
+  }, []);
 
-// 🆕 State untuk seleksi multiple foto
-const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
-const [isSelectionMode, setIsSelectionMode] = useState(false);
+  // Animated Background Effect
+  useEffect(() => {
+    if (!isMounted || !canvasRef.current) return;
 
-// Di dalam component, tambahkan useEffect untuk debug
-useEffect(() => {
-  console.log("🔄 Component state:", {
-    isAuthenticating,
-    authError,
-    photosCount: photos.length
-  });
-}, [isAuthenticating, authError, photos.length]);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-useEffect(() => {
-  const handleMessage = (event: MessageEvent) => {
-    console.log("📨 Received message from popup:", event.data);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    if (event.data?.type === "auth_success") {
-      console.log("✅ Auth success via postMessage, triggering file input...");
-      setIsAuthenticating(false);
+    const particles: Array<{
+      x: number;
+      y: number;
+      size: number;
+      speedX: number;
+      speedY: number;
+      color: string;
+    }> = [];
 
-      const fileInput = document.getElementById("file-upload") as HTMLInputElement;
-      if (fileInput) {
-        setTimeout(() => fileInput.click(), 800);
-      } else {
-        console.error("❌ File input element not found!");
-      }
+    const colors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
+
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 1 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.2,
+        speedY: (Math.random() - 0.5) * 0.2,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      });
     }
 
-    if (event.data?.type === "auth_error") {
-      console.error("❌ Auth error:", event.data.message);
-      setAuthError("Autentikasi gagal: " + event.data.message);
-      setIsAuthenticating(false);
-    }
-  };
+    const animate = () => {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.02)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  window.addEventListener("message", handleMessage);
-  return () => window.removeEventListener("message", handleMessage);
-}, []);
+      particles.forEach((particle, index) => {
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
 
-useEffect(() => {
-  const handleStorage = (event: StorageEvent) => {
-    if (event.key === "drive_auth_success" && event.newValue === "true") {
-      console.log("📨 Auth success detected via localStorage");
+        if (particle.x > canvas.width) particle.x = 0;
+        if (particle.x < 0) particle.x = canvas.width;
+        if (particle.y > canvas.height) particle.y = 0;
+        if (particle.y < 0) particle.y = canvas.height;
 
-      // Hapus flag supaya event tidak ter-trigger ulang
-      localStorage.removeItem("drive_auth_success");
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fillStyle = particle.color;
+        ctx.globalAlpha = 0.2;
+        ctx.fill();
 
-      // Tutup proses auth
-      setIsAuthenticating(false);
+        for (let j = index + 1; j < particles.length; j++) {
+          const dx = particle.x - particles[j].x;
+          const dy = particle.y - particles[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Trigger file input
-      const fileInput = document.getElementById("file-upload") as HTMLInputElement;
-      fileInput?.click();
-    }
-  };
+          if (distance < 50) {
+            ctx.beginPath();
+            ctx.strokeStyle = particle.color;
+            ctx.globalAlpha = 0.05 * (1 - distance / 50);
+            ctx.lineWidth = 0.2;
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      });
 
-  window.addEventListener("storage", handleStorage);
-  return () => window.removeEventListener("storage", handleStorage);
-}, []);
+      requestAnimationFrame(animate);
+    };
 
-  // Admin credentials (dalam production, ini harus dari environment variables)
+    animate();
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMounted]);
+
+  // Admin credentials
   const ADMIN_CREDENTIALS = {
     username: "reylangko",
     password: "hyuga10"
   };
   
   const VALID_CLASS_CODE = "PI23A";
-
-  useEffect(() => {
-  const isAdmin = localStorage.getItem("isAdmin");
-  if (isAdmin === "true") {
-    setIsAuthenticated(true);
-  }
-}, []);
 
   // 🧠 Ambil semua foto dari database
   useEffect(() => {
@@ -126,100 +155,80 @@ useEffect(() => {
 
   // 🔐 Handle Login
   const handleLogin = (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoginError("");
+    e.preventDefault();
+    setLoginError("");
 
-  if (
-    loginData.username === ADMIN_CREDENTIALS.username &&
-    loginData.password === ADMIN_CREDENTIALS.password
-  ) {
-    setIsAuthenticated(true);
-    localStorage.setItem("isAdmin", "true"); // ✅ simpan ke localStorage
-    setShowLogin(false);
-    setLoginData({ username: "", password: "" });
-  } else {
-    setLoginError("Username atau password salah!");
-  }
-};
+    if (
+      loginData.username === ADMIN_CREDENTIALS.username &&
+      loginData.password === ADMIN_CREDENTIALS.password
+    ) {
+      setIsAuthenticated(true);
+      localStorage.setItem("isAdmin", "true");
+      setShowLogin(false);
+      setLoginData({ username: "", password: "" });
+    } else {
+      setLoginError("Username atau password salah!");
+    }
+  };
 
   // 🔑 Handle Google OAuth sebelum upload
-const handleGoogleAuth = async () => {
-  setIsAuthenticating(true);
-  setAuthError("");
+  const handleGoogleAuth = async () => {
+    setIsAuthenticating(true);
+    setAuthError("");
 
-  try {
-    const res = await fetch("/api/auth/google");
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/auth/google");
+      const data = await res.json();
 
-    if (data.authUrl) {
-      // 🔹 Definisikan handler
-      const handleMessage = (event: MessageEvent) => {
-        console.log("📨 Message received:", event.data);
-
-        if (event.data.type === "auth_success") {
-          console.log("✅ Auth success, triggering file input...");
-          setIsAuthenticating(false);
-          window.removeEventListener("message", handleMessage);
-
-          // 🔹 Trigger input file
-          setTimeout(() => {
-            const fileInput = document.getElementById("file-upload") as HTMLInputElement;
-            if (fileInput) {
-              fileInput.click();
-              console.log("🎯 File input triggered!");
-            } else {
-              console.error("❌ File input not found!");
-            }
-          }, 1000);
-
-          // 🔹 Tampilkan tombol manual fallback
-          setShowManualUploadButton(true);
-          setTimeout(() => setShowManualUploadButton(false), 7000);
-
-        } else if (event.data.type === "auth_error") {
-          console.error("❌ Auth error:", event.data.message);
-          setAuthError("Autentikasi Google gagal: " + event.data.message);
-          setIsAuthenticating(false);
-          window.removeEventListener("message", handleMessage);
-        }
-      };
-
-      // ✅ Pasang listener SEBELUM buka popup
-      window.addEventListener("message", handleMessage);
-
-      // 🚨 Buka popup
-      const width = 600;
-      const height = 700;
-      const left = (window.screen.width - width) / 2;
-      const top = (window.screen.height - height) / 2;
-
-      const authWindow = window.open(
-        data.authUrl,
-        "google_auth",
-        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
-      );
-
-      // 🔹 FALLBACK jika popup tertutup tanpa pesan
-      const checkClosed = setInterval(() => {
-        if (authWindow?.closed) {
-          clearInterval(checkClosed);
-          console.log("🔍 Popup closed without message");
-          window.removeEventListener("message", handleMessage);
-          if (isAuthenticating) {
-            setAuthError("Popup tertutup sebelum autentikasi selesai");
+      if (data.authUrl) {
+        const handleMessage = (event: MessageEvent) => {
+          if (event.data.type === "auth_success") {
             setIsAuthenticating(false);
+            window.removeEventListener("message", handleMessage);
+            setTimeout(() => {
+              const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+              fileInput?.click();
+            }, 1000);
+            setShowManualUploadButton(true);
+            setTimeout(() => setShowManualUploadButton(false), 7000);
+          } else if (event.data.type === "auth_error") {
+            setAuthError("Autentikasi Google gagal: " + event.data.message);
+            setIsAuthenticating(false);
+            window.removeEventListener("message", handleMessage);
           }
-        }
-      }, 1000);
-    } else {
-      throw new Error("Failed to get auth URL");
+        };
+
+        window.addEventListener("message", handleMessage);
+        const width = 600;
+        const height = 700;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+
+        const authWindow = window.open(
+          data.authUrl,
+          "google_auth",
+          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+        );
+
+        const checkClosed = setInterval(() => {
+          if (authWindow?.closed) {
+            clearInterval(checkClosed);
+            window.removeEventListener("message", handleMessage);
+            if (isAuthenticating) {
+              setAuthError("Popup tertutup sebelum autentikasi selesai");
+              setIsAuthenticating(false);
+            }
+          }
+        }, 1000);
+      } else {
+        throw new Error("Failed to get auth URL");
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+      setAuthError("Gagal menghubungkan ke Google Drive");
+      setIsAuthenticating(false);
     }
-  } catch (error) {
-    console.error("Auth error:", error);
-    setAuthError("Gagal menghubungkan ke Google Drive");
-    setIsAuthenticating(false);
-  }
-};
+  };
 
   // 🔑 Handle Class Code Verification
   const handleClassCode = (e: React.FormEvent) => {
@@ -227,15 +236,14 @@ const handleGoogleAuth = async () => {
     setClassCodeError("");
 
     if (classCode.toUpperCase() === VALID_CLASS_CODE) {
-  setShowClassCode(false);
-  // Jalankan proses Google OAuth dulu sebelum upload
-  handleGoogleAuth();
-} else {
+      setShowClassCode(false);
+      handleGoogleAuth();
+    } else {
       setClassCodeError("Kode kelas salah! Coba lagi.");
     }
   };
 
-  // ✅ Upload ke server lokal (Drive & DB)
+  // ✅ Upload ke server lokal
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -262,13 +270,9 @@ const handleGoogleAuth = async () => {
         }
       }
 
-      // Success notification dengan animasi
       setUploading(false);
       e.target.value = "";
-      
-      // Reset class code setelah upload berhasil
       setClassCode("");
-      
     } catch (error) {
       console.error(error);
       setUploading(false);
@@ -291,8 +295,6 @@ const handleGoogleAuth = async () => {
       if (!data.success) throw new Error("Gagal hapus di server");
 
       setPhotos((prev) => prev.filter((p) => p.id !== photoId));
-      
-      // Success feedback
     } catch (err) {
       console.error(err);
     }
@@ -351,55 +353,127 @@ const handleGoogleAuth = async () => {
     setShowClassCode(true);
   };
 
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-blue-950 text-white px-4 pt-6 pb-20 overflow-x-hidden">
-      {/* Header */}
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 mb-12"
-      >
-        <div className="text-center md:text-left">
-          <motion.h1 
-            className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent flex items-center justify-center md:justify-start gap-3 mb-3"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
-            <motion.div
-              animate={{ rotate: [0, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
-            >
-              <ImageIcon className="text-pink-400" size={40} />
-            </motion.div>
-            Album Foto PI23A
-          </motion.h1>
-          <p className="text-purple-200 text-lg max-w-2xl">
-            Simpan dan bagikan momen terbaik bersama teman seperjuangan 💜
-            <span className="block text-sm text-purple-400 mt-2">
-              {photos.length} kenangan tersimpan • Klik foto untuk melihat detail
-            </span>
-          </p>
-        </div>
+  // Toggle grid layout
+  const toggleGridLayout = () => {
+    setGridLayout(prev => prev === "comfortable" ? "compact" : "comfortable");
+  };
 
-        {/* Tombol Upload & Admin - PERBAIKAN: Selalu horisontal */}
-        <div className="flex flex-row gap-3 w-full md:w-auto justify-center">
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-cyan-300">Memuat album...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
+      {/* Animated Canvas Background */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+      />
+
+      <div className="relative z-10 px-4 sm:px-6 pb-20 pt-4">
+        {/* Header - Cyber Glass Style */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-7xl mx-auto"
+        >
+          <div className="flex items-center justify-between mb-6">
+            {/* Logo & Title */}
+            <motion.div
+              className="flex items-center gap-3"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="relative">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                  <div className="w-9 h-9 bg-slate-900/80 rounded-lg backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                    <ImageIcon className="text-cyan-400 w-5 h-5" />
+                  </div>
+                </div>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-2 border border-cyan-400/30 rounded-xl"
+                />
+              </div>
+              
+              <div>
+                <h1 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  Album Foto
+                </h1>
+                <p className="text-xs text-cyan-200/80 mt-0.5">
+                  Kenangan <b className="text-cyan-300">PI23A</b> • {photos.length} foto
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Controls */}
+            <div className="flex items-center gap-3">
+              {/* Grid Layout Toggle */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleGridLayout}
+                className="flex items-center gap-2 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/30 px-3 py-2 rounded-xl transition-all duration-300 text-cyan-200 hover:text-cyan-300 backdrop-blur-md text-sm"
+              >
+                {gridLayout === "comfortable" ? (
+                  <Grid3X3 className="w-4 h-4" />
+                ) : (
+                  <Rows className="w-4 h-4" />
+                )}
+                <span className="whitespace-nowrap">
+                  {gridLayout === "comfortable" ? "Compact" : "Comfortable"}
+                </span>
+              </motion.button>
+
+              {/* Back Button */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  href="/kelas"
+                  className="flex items-center gap-2 bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400/30 px-3 py-2 rounded-xl transition-all duration-300 text-cyan-200 hover:text-cyan-300 backdrop-blur-md text-sm"
+                >
+                  <ArrowLeft size={16} />
+                  <span className="whitespace-nowrap">Kembali</span>
+                </Link>
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Action Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="max-w-7xl mx-auto mb-6 flex flex-wrap gap-3 justify-center"
+        >
+          {/* Upload Button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={triggerUpload}
             disabled={uploading}
-            className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-semibold shadow-2xl transition-all flex-1 md:flex-none justify-center ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all ${
               uploading 
-                ? "bg-purple-400 cursor-not-allowed" 
-                : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                ? "bg-cyan-400 cursor-not-allowed" 
+                : "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
             }`}
           >
-            <Upload size={20} />
-            <span className="whitespace-nowrap">{uploading ? "Uploading..." : "Upload Foto"}</span>
+            <Upload size={18} />
+            <span>{uploading ? "Uploading..." : "Upload Foto"}</span>
           </motion.button>
 
-          {/* 🆕 Tombol Seleksi untuk Admin */}
+          {/* Selection Mode Button */}
           {isAuthenticated && isSelectionMode ? (
             <div className="flex gap-2">
               <motion.button
@@ -407,23 +481,23 @@ const handleGoogleAuth = async () => {
                 whileTap={{ scale: 0.95 }}
                 onClick={handleDeleteMultiple}
                 disabled={selectedPhotos.length === 0}
-                className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-semibold transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl font-semibold transition-all ${
                   selectedPhotos.length === 0
                     ? "bg-gray-600 cursor-not-allowed"
                     : "bg-red-600 hover:bg-red-700"
                 }`}
               >
-                <Trash2 size={18} />
-                <span className="whitespace-nowrap">Hapus ({selectedPhotos.length})</span>
+                <Trash2 size={16} />
+                <span>Hapus ({selectedPhotos.length})</span>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={toggleSelectionMode}
-                className="flex items-center gap-2 px-4 py-3 rounded-2xl font-semibold bg-gray-600 hover:bg-gray-700 transition-all"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold bg-gray-600 hover:bg-gray-700 transition-all"
               >
-                <X size={18} />
-                <span className="whitespace-nowrap">Batal</span>
+                <X size={16} />
+                <span>Batal</span>
               </motion.button>
             </div>
           ) : (
@@ -431,142 +505,167 @@ const handleGoogleAuth = async () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={isAuthenticated ? toggleSelectionMode : () => setShowLogin(true)}
-              className="flex items-center gap-3 px-6 py-3 rounded-2xl font-semibold bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all flex-1 md:flex-none justify-center"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 transition-all"
             >
-              <Shield size={20} />
-              <span className="whitespace-nowrap">
-                {isAuthenticated ? "Pilih Foto" : "Admin"}
-              </span>
+              <Shield size={18} />
+              <span>{isAuthenticated ? "Pilih Foto" : "Admin"}</span>
             </motion.button>
           )}
-        </div>
-      </motion.div>
+        </motion.div>
 
-      {/* Grid Foto dengan Desain Keren */}
-      <section className="max-w-7xl mx-auto">
-        {photos.length === 0 && !uploading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="col-span-full text-center text-purple-300 py-20"
-          >
+        {/* Photo Grid */}
+        <section className="max-w-7xl mx-auto">
+          {photos.length === 0 && !uploading && (
             <motion.div
-              animate={{ 
-                scale: [1, 1.1, 1],
-                rotate: [0, 5, -5, 0]
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
-              className="mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16"
             >
-              <ImageIcon size={80} className="mx-auto opacity-60" />
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ duration: 4, repeat: Infinity }}
+                className="mb-4"
+              >
+                <ImageIcon size={64} className="mx-auto opacity-50 text-cyan-400" />
+              </motion.div>
+              <h3 className="text-xl font-semibold text-cyan-200 mb-2">
+                Album Masih Kosong
+              </h3>
+              <p className="text-cyan-200/70">
+                Yuk jadi yang pertama upload kenangan spesial! 📸
+              </p>
             </motion.div>
-            <h3 className="text-2xl font-semibold text-purple-200 mb-3">
-              Album Masih Kosong
-            </h3>
-            <p className="text-lg text-purple-400 max-w-md mx-auto">
-              Yuk jadi yang pertama upload kenangan spesial! 📸
-            </p>
-          </motion.div>
-        )}
+          )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {photos.map((photo, i) => (
-            <motion.div
-              key={photo.id}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ 
-                delay: i * 0.1,
-                type: "spring",
-                stiffness: 100
-              }}
-              whileHover={{ 
-                scale: isSelectionMode ? 1 : 1.05,
-                y: isSelectionMode ? 0 : -8
-              }}
-              className="group relative"
-            >
-              {/* Card Container */}
-              <div className={`relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm border transition-all ${
-                isSelectionMode && selectedPhotos.includes(photo.id) 
-                  ? "border-blue-400 ring-4 ring-blue-400/30" 
-                  : "border-white/10"
-              }`}>
-                {/* 🆕 Checkbox untuk seleksi */}
-                {isSelectionMode && (
-                  <div className="absolute top-4 left-4 z-20">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                      selectedPhotos.includes(photo.id) 
-                        ? "bg-blue-500" 
-                        : "bg-black/50 backdrop-blur-sm"
+          {/* Dynamic Grid Layout */}
+          <div className={`grid gap-3 ${
+            gridLayout === "comfortable" 
+              ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+              : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+          }`}>
+            {photos.map((photo, i) => (
+              <motion.div
+                key={photo.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ 
+                  delay: i * 0.1,
+                  type: "spring",
+                  stiffness: 100
+                }}
+                whileHover={{ 
+                  scale: isSelectionMode ? 1 : 1.05,
+                  y: isSelectionMode ? 0 : -4
+                }}
+                className="group relative"
+              >
+                {/* Card Container */}
+                <div className={`relative rounded-xl overflow-hidden shadow-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/10 backdrop-blur-sm border transition-all ${
+                  isSelectionMode && selectedPhotos.includes(photo.id) 
+                    ? "border-cyan-400 ring-2 ring-cyan-400/30" 
+                    : "border-white/10"
+                }`}>
+                  {/* Selection Checkbox */}
+                  {isSelectionMode && (
+                    <div className="absolute top-2 left-2 z-20">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                        selectedPhotos.includes(photo.id) 
+                          ? "bg-cyan-500" 
+                          : "bg-black/50 backdrop-blur-sm"
+                      }`}>
+                        {selectedPhotos.includes(photo.id) && (
+                          <Check size={14} className="text-white" />
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Image Container */}
+                  <div 
+                    className={`relative overflow-hidden cursor-pointer ${
+                      gridLayout === "comfortable" ? "h-64" : "h-48"
+                    }`}
+                    onClick={() => {
+                      if (isSelectionMode) {
+                        togglePhotoSelection(photo.id);
+                      } else {
+                        setSelected(photo.src);
+                      }
+                    }}
+                  >
+                    <Image
+                      src={photo.src}
+                      alt={photo.name}
+                      fill
+                      className="object-cover transition-all duration-500 group-hover:scale-110"
+                    />
+                    
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
+                    
+                    {/* Hover Actions */}
+                    <div className={`absolute bottom-0 left-0 right-0 p-3 transition-all duration-500 ${
+                      "sm:translate-y-4 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 translate-y-0 opacity-100"
                     }`}>
-                      {selectedPhotos.includes(photo.id) && (
-                        <Check size={20} className="text-white" />
-                      )}
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/90 text-xs font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded">
+                          {new Date(photo.uploadedAt).toLocaleDateString('id-ID')}
+                        </span>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(photo.id);
+                          }}
+                          className="p-1.5 bg-red-500/80 hover:bg-red-600 backdrop-blur-sm rounded transition-all shadow"
+                        >
+                          <Trash2 size={14} className="text-white" />
+                        </motion.button>
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                {/* Image Container */}
-                <div 
-                  className="relative h-72 overflow-hidden cursor-pointer"
-                  onClick={() => {
-                    if (isSelectionMode) {
-                      togglePhotoSelection(photo.id);
-                    } else {
-                      setSelected(photo.src);
-                    }
-                  }}
-                >
-                  <Image
-                    src={photo.src}
-                    alt={photo.name}
-                    fill
-                    className="object-cover transition-all duration-700 group-hover:scale-110"
-                  />
-                  
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
-                  
-                  {/* Hover Actions - MODIFIKASI: Selalu tampil di mobile */}
-                  <div className={`absolute bottom-0 left-0 right-0 p-4 transition-all duration-500 ${
-                    // Tampil di mobile atau saat hover di desktop
-                    "sm:translate-y-4 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 translate-y-0 opacity-100"
-                  }`}>
-                    <div className="flex justify-between items-center">
-                      <span className="text-white/90 text-sm font-medium bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full">
-                        {new Date(photo.uploadedAt).toLocaleDateString('id-ID')}
-                      </span>
-                      {/* MODIFIKASI: Tombol hapus selalu tampil di mobile, atau saat hover di desktop */}
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(photo.id);
-                        }}
-                        className="p-2 bg-red-500/80 hover:bg-red-600 backdrop-blur-sm rounded-full transition-all shadow-lg"
-                      >
-                        <Trash2 size={16} className="text-white" />
-                      </motion.button>
-                    </div>
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                   </div>
 
-                  {/* Shine Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                  {/* Photo Name - Only show in comfortable mode */}
+                  {gridLayout === "comfortable" && (
+                    <div className="p-3">
+                      <p className="text-white/90 font-medium truncate text-sm">
+                        {photo.name}
+                      </p>
+                    </div>
+                  )}
                 </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
 
-                {/* Photo Name */}
-                <div className="p-4">
-                  <p className="text-white/90 font-medium truncate text-sm">
-                    {photo.name}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+        {/* Footer Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="max-w-2xl mx-auto mt-6 text-center"
+        >
+          <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs text-cyan-200/70">Cloud Photo Gallery</span>
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+            </div>
+            <p className="text-xs text-cyan-200/60">
+              Powered by Google Drive • Kelas PI23A • 
+              <span className="text-cyan-400 ml-1">Secure Storage</span>
+            </p>
+          </div>
+        </motion.div>
+      </div>
 
       {/* Modal Login Admin */}
       <AnimatePresence>
@@ -587,43 +686,43 @@ const handleGoogleAuth = async () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 max-w-md w-full border border-white/10 shadow-2xl"
+              className="bg-slate-800 rounded-2xl p-6 max-w-md w-full border border-white/10 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl mb-4">
-                  <Lock className="text-white" size={28} />
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl mb-3">
+                  <Lock className="text-white w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Admin Access</h2>
-                <p className="text-gray-400">Masuk untuk mengelola foto</p>
+                <h2 className="text-xl font-bold text-white mb-1">Admin Access</h2>
+                <p className="text-cyan-200/70 text-sm">Masuk untuk mengelola foto</p>
               </div>
 
-              <form onSubmit={handleLogin} className="space-y-6">
+              <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                    <User size={16} />
+                  <label className="flex items-center gap-2 text-sm font-medium text-cyan-200 mb-2">
+                    <User size={14} />
                     Username
                   </label>
                   <input
                     type="text"
                     value={loginData.username}
                     onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-white/10 rounded-xl text-white placeholder-cyan-200/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all backdrop-blur-sm"
                     placeholder="Masukkan username"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                    <Key size={16} />
+                  <label className="flex items-center gap-2 text-sm font-medium text-cyan-200 mb-2">
+                    <Key size={14} />
                     Password
                   </label>
                   <input
                     type="password"
                     value={loginData.password}
                     onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-white/10 rounded-xl text-white placeholder-cyan-200/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all backdrop-blur-sm"
                     placeholder="Masukkan password"
                     required
                   />
@@ -633,13 +732,13 @@ const handleGoogleAuth = async () => {
                   <motion.p
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-red-400 text-sm text-center bg-red-400/10 py-2 px-4 rounded-xl border border-red-400/20"
+                    className="text-red-400 text-sm text-center bg-red-400/10 py-2 px-3 rounded-lg border border-red-400/20"
                   >
                     {loginError}
                   </motion.p>
                 )}
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-2 pt-2">
                   <motion.button
                     type="button"
                     whileHover={{ scale: 1.02 }}
@@ -649,7 +748,7 @@ const handleGoogleAuth = async () => {
                       setLoginError("");
                       setLoginData({ username: "", password: "" });
                     }}
-                    className="flex-1 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-2xl font-semibold transition-all"
+                    className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all"
                   >
                     Batal
                   </motion.button>
@@ -657,7 +756,7 @@ const handleGoogleAuth = async () => {
                     type="submit"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-2xl font-semibold transition-all"
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl font-semibold transition-all"
                   >
                     Masuk
                   </motion.button>
@@ -687,24 +786,24 @@ const handleGoogleAuth = async () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="bg-gradient-to-br from-purple-900/80 to-pink-900/80 rounded-3xl p-8 max-w-md w-full border border-white/10 shadow-2xl backdrop-blur-sm"
+              className="bg-slate-800 rounded-2xl p-6 max-w-md w-full border border-white/10 shadow-2xl backdrop-blur-sm"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl mb-4">
-                  <Key className="text-white" size={28} />
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl mb-3">
+                  <Key className="text-white w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Kode Kelas</h2>
-                <p className="text-purple-200">Masukkan kode kelas PI23A untuk upload foto</p>
+                <h2 className="text-xl font-bold text-white mb-1">Kode Kelas</h2>
+                <p className="text-cyan-200/70 text-sm">Masukkan kode kelas untuk upload</p>
               </div>
 
-              <form onSubmit={handleClassCode} className="space-y-6">
+              <form onSubmit={handleClassCode} className="space-y-4">
                 <div>
                   <input
                     type="text"
                     value={classCode}
                     onChange={(e) => setClassCode(e.target.value.toUpperCase())}
-                    className="w-full px-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white text-center text-xl font-mono tracking-widest placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all backdrop-blur-sm"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-white/20 rounded-xl text-white text-center text-lg font-mono tracking-widest placeholder-cyan-200/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all backdrop-blur-sm"
                     placeholder="PI23A"
                     required
                     maxLength={5}
@@ -715,13 +814,13 @@ const handleGoogleAuth = async () => {
                   <motion.p
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-red-300 text-sm text-center bg-red-400/10 py-2 px-4 rounded-xl border border-red-400/20"
+                    className="text-red-300 text-sm text-center bg-red-400/10 py-2 px-3 rounded-lg border border-red-400/20"
                   >
                     {classCodeError}
                   </motion.p>
                 )}
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-2 pt-2">
                   <motion.button
                     type="button"
                     whileHover={{ scale: 1.02 }}
@@ -731,7 +830,7 @@ const handleGoogleAuth = async () => {
                       setClassCodeError("");
                       setClassCode("");
                     }}
-                    className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-semibold transition-all backdrop-blur-sm"
+                    className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all"
                   >
                     Batal
                   </motion.button>
@@ -739,7 +838,7 @@ const handleGoogleAuth = async () => {
                     type="submit"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-2xl font-semibold transition-all"
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl font-semibold transition-all"
                   >
                     Verifikasi
                   </motion.button>
@@ -768,7 +867,7 @@ const handleGoogleAuth = async () => {
               className="relative max-w-6xl w-full max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative w-full h-[80vh] rounded-3xl overflow-hidden shadow-2xl">
+              <div className="relative w-full h-[80vh] rounded-2xl overflow-hidden shadow-2xl">
                 <Image
                   src={selected}
                   alt="Preview"
@@ -781,9 +880,9 @@ const handleGoogleAuth = async () => {
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setSelected(null)}
-                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-3 border border-white/20 transition-all"
+                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 border border-white/20 transition-all"
               >
-                <X size={24} className="text-white" />
+                <X size={20} className="text-white" />
               </motion.button>
             </motion.div>
           </motion.div>
@@ -813,67 +912,67 @@ const handleGoogleAuth = async () => {
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-3xl p-8 text-center shadow-2xl border border-white/20"
+              className="bg-gradient-to-br from-cyan-600 to-blue-600 rounded-2xl p-6 text-center shadow-2xl border border-white/20"
             >
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full mx-auto mb-4"
+                className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full mx-auto mb-3"
               />
-              <h3 className="text-2xl font-bold text-white mb-2">Uploading...</h3>
-              <p className="text-white/80">Sedang mengupload foto Anda</p>
+              <h3 className="text-lg font-bold text-white mb-1">Uploading...</h3>
+              <p className="text-white/80 text-sm">Sedang mengupload foto Anda</p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Auth Overlay */}
       <AnimatePresence>
-  {isAuthenticating && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50"
-    >
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl p-8 text-center shadow-2xl border border-white/20"
-      >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full mx-auto mb-4"
-        />
-        <h3 className="text-2xl font-bold text-white mb-2">Menghubungkan ke Google Drive...</h3>
-        {authError && <p className="text-red-300 mt-3">{authError}</p>}
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
+        {isAuthenticating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-6 text-center shadow-2xl border border-white/20"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full mx-auto mb-3"
+              />
+              <h3 className="text-lg font-bold text-white mb-1">Menghubungkan ke Google Drive...</h3>
+              {authError && <p className="text-red-300 text-sm mt-2">{authError}</p>}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-{/* 🔹 Tombol fallback manual upload */}
-<AnimatePresence>
-  {showManualUploadButton && (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="fixed bottom-10 left-1/2 transform -translate-x-1/2 z-50"
-    >
-      <button
-        onClick={() => {
-          const fileInput = document.getElementById("file-upload") as HTMLInputElement;
-          fileInput?.click();
-        }}
-        className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-6 py-3 rounded-full shadow-lg font-semibold"
-      >
-        📸 Klik di sini untuk memilih foto (jika dialog tidak muncul otomatis)
-      </button>
-    </motion.div>
-  )}
-</AnimatePresence>
-
+      {/* Manual Upload Button */}
+      <AnimatePresence>
+        {showManualUploadButton && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50"
+          >
+            <button
+              onClick={() => {
+                const fileInput = document.getElementById("file-upload") as HTMLInputElement;
+                fileInput?.click();
+              }}
+              className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600 text-white px-4 py-2 rounded-xl shadow-lg font-semibold text-sm"
+            >
+              📸 Klik di sini untuk memilih foto
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

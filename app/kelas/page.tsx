@@ -267,7 +267,7 @@ export default function Dashboard() {
   }
 
   const handleTotalMataKuliah = () => {
-    showCustomFeedback("Total 6 mata kuliah aktif")
+    showCustomFeedback("Total 7 mata kuliah aktif")
   }
 
   const handleTugasMendatang = () => {
@@ -281,7 +281,7 @@ export default function Dashboard() {
   const stats = [
     { 
       label: "Total Mata Kuliah", 
-      value: "6", 
+      value: "7", 
       icon: BookOpen, 
       change: "+0",
       onClick: handleTotalMataKuliah

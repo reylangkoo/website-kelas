@@ -29,7 +29,7 @@ export default function Navbar() {
     { name: "Album", href: "/album", icon: ImageIcon },
     { name: "Profil", href: "/profil", icon: User },
     { name: "VSCode", href: "/vscode", icon: Code },
-    { name: "Asisten PI", href: "/asistenpi", icon: Bot },
+    { name: "Asisten PI", href: "/ai-chat", icon: Bot },
   ]
 
   const allNavItems = [...mainNavItems, ...moreNavItems]

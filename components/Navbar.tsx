@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
-import { Menu, X, Home, Calendar, MessageCircle, Users, User, ImageIcon, Code, Sparkles, Zap, Bot, ChevronDown } from "lucide-react"
+import { Menu, X, Home, Calendar, MessageCircle, Users, User, ImageIcon, Code, Sparkles, Zap, ChevronDown, Info } from "lucide-react"
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
@@ -29,7 +29,7 @@ export default function Navbar() {
     { name: "Album", href: "/album", icon: ImageIcon },
     { name: "Profil", href: "/profil", icon: User },
     { name: "VSCode", href: "/vscode", icon: Code },
-    { name: "Asisten PI", href: "/ai-chat", icon: Bot },
+    { name: "Tentang Kami", href: "/informasi", icon: Info },
   ]
 
   const allNavItems = [...mainNavItems, ...moreNavItems]

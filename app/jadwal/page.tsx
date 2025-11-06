@@ -189,7 +189,7 @@ useEffect(() => {
     {
       hari: "Senin",
       mataKuliah: "Sistem Keamanan Informasi",
-      kode: "P786222",
+      kode: "P786223",
       sks: 3,
       jam: "13.00–16.00 WITA",
       ruang: "Ruang PI-2",
@@ -237,7 +237,7 @@ useEffect(() => {
       sks: 3,
       jam: "10.00–12.00 WITA",
       ruang: "Lab. Kom",
-      dosen: "-",
+      dosen: "--",
       color: "from-indigo-500 to-purple-500",
       icon: "🎨"
     },

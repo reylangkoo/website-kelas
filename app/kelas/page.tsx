@@ -64,6 +64,12 @@ const SCHEDULE_DATA: ScheduleItem[] = [
     room: "Ruang PI-1",
     day: "Rabu"
   },
+  {
+      day: "Kamis",
+      course: "Animasi & Motion Grafis",
+      time: "10.00–12.00",
+      room: "Lab. Kom",
+    },
   { 
     time: "13:00-15:00", 
     course: "Pengembangan Bahan Ajar", 

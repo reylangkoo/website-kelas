@@ -58,7 +58,7 @@ export default function ForumPage() {
   }
 }, [])
 
-  // Animated Background Effect - FIXED FOR ALL DEVICES
+//  useEffect partikel 
 useEffect(() => {
   if (!isMounted || !canvasRef.current) return
 
@@ -77,16 +77,18 @@ useEffect(() => {
 
   const colors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
   let animationId: number
-  let visibleWidth = window.innerWidth
-  let visibleHeight = window.innerHeight
+  
+  // GUNAKAN VIEWPORT SIZE BUKAN DOCUMENT SIZE
+  let viewportWidth = window.innerWidth
+  let viewportHeight = window.innerHeight
 
-  // INIT PARTIKEL BARU
+  // INIT PARTIKEL - HANYA DI VIEWPORT
   const initParticles = () => {
     particles = []
     for (let i = 0; i < 80; i++) {
       particles.push({
-        x: Math.random() * visibleWidth,
-        y: Math.random() * visibleHeight,
+        x: Math.random() * viewportWidth,
+        y: Math.random() * viewportHeight,
         size: (Math.random() * 2 + 1),
         speedX: (Math.random() - 0.5) * 0.5,
         speedY: (Math.random() - 0.5) * 0.5,
@@ -95,17 +97,23 @@ useEffect(() => {
     }
   }
 
-  // SET CANVAS SIZE
+  // SET CANVAS SIZE - VIEWPORT SAJA
   const setCanvasSize = () => {
     const dpr = window.devicePixelRatio || 1
-    visibleWidth = window.innerWidth
-    visibleHeight = window.innerHeight
+    viewportWidth = window.innerWidth
+    viewportHeight = window.innerHeight
     
-    canvas.width = visibleWidth * dpr
-    canvas.height = visibleHeight * dpr
+    canvas.width = viewportWidth * dpr
+    canvas.height = viewportHeight * dpr
     ctx.scale(dpr, dpr)
-    canvas.style.width = `${visibleWidth}px`
-    canvas.style.height = `${visibleHeight}px`
+    canvas.style.width = `${viewportWidth}px`
+    canvas.style.height = `${viewportHeight}px`
+    
+    // POSITION FIXED COVER VIEWPORT
+    canvas.style.position = 'fixed'
+    canvas.style.top = '0'
+    canvas.style.left = '0'
+    canvas.style.zIndex = '0'
   }
 
   // INITIAL SETUP
@@ -113,42 +121,42 @@ useEffect(() => {
   initParticles()
 
   const animate = () => {
-    // Clear canvas
+    // Clear entire canvas
     ctx.fillStyle = '#0f172a'
-    ctx.fillRect(0, 0, visibleWidth, visibleHeight)
+    ctx.fillRect(0, 0, viewportWidth, viewportHeight)
 
     particles.forEach((particle, index) => {
-      // Update position
+      // Update position - TANPA PENGARUH SCROLL
       particle.x += particle.speedX
       particle.y += particle.speedY
 
-      // Boundary checking dengan visible size
-      if (particle.x > visibleWidth) particle.x = 0
-      else if (particle.x < 0) particle.x = visibleWidth
-      if (particle.y > visibleHeight) particle.y = 0
-      else if (particle.y < 0) particle.y = visibleHeight
+      // Boundary checking - HANYA DI VIEWPORT
+      if (particle.x > viewportWidth) particle.x = 0
+      else if (particle.x < 0) particle.x = viewportWidth
+      if (particle.y > viewportHeight) particle.y = 0
+      else if (particle.y < 0) particle.y = viewportHeight
 
-      // Draw particle - TANPA SHADOW UNTUK PERFORMANCE
+      // Draw particle - SEMUA PARTIKEL DI-RENDER
       ctx.beginPath()
       ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
       ctx.fillStyle = particle.color
       ctx.globalAlpha = 0.8
       ctx.fill()
 
-      // Connect particles - LEBIH STABIL
+      // Connect particles - untuk yang dekat saja
       for (let j = index + 1; j < particles.length; j++) {
-        const dx = particle.x - particles[j].x
-        const dy = particle.y - particles[j].y
+        const otherParticle = particles[j]
+        const dx = particle.x - otherParticle.x
+        const dy = particle.y - otherParticle.y
         const distance = Math.sqrt(dx * dx + dy * dy)
 
         if (distance < 100) {
           ctx.beginPath()
           ctx.strokeStyle = particle.color
-          // Alpha yang konsisten
           ctx.globalAlpha = Math.max(0.1, 0.6 * (1 - distance / 100))
           ctx.lineWidth = 1.5
           ctx.moveTo(particle.x, particle.y)
-          ctx.lineTo(particles[j].x, particles[j].y)
+          ctx.lineTo(otherParticle.x, otherParticle.y)
           ctx.stroke()
         }
       }
@@ -163,22 +171,15 @@ useEffect(() => {
   animate()
 
   const handleResize = () => {
-    // Cancel previous animation frame
     if (animationId) {
       cancelAnimationFrame(animationId)
     }
 
-    // Update canvas size
     setCanvasSize()
-    
-    // RE-INIT PARTIKEL dengan size baru
     initParticles()
-
-    // Restart animation
     animate()
   }
 
-  // Debounce resize untuk performance
   let resizeTimeout: NodeJS.Timeout
   const debouncedResize = () => {
     clearTimeout(resizeTimeout)

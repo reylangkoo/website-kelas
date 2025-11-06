@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
-import { LogOut, Calendar, MessageCircle, Users, User, Image as ImageIcon, Bell, Sparkles, Zap, Target, TrendingUp, Clock, BookOpen, Settings, X, Sun, Moon, Bot } from "lucide-react"
+import { LogOut, Calendar, MessageCircle, Users, User, Image as ImageIcon, Sparkles, Zap, Target, TrendingUp, Clock, BookOpen, Settings, X, Sun, Moon, Info } from "lucide-react"
 import { Instagram } from "lucide-react"
 
 // Interface untuk tipe data
@@ -169,8 +169,7 @@ export default function Dashboard() {
     })
   }, [])
 
-// Animated Background Effect - FIXED FOR SCROLL
-// GANTI useEffect partikel di dashboard dengan ini:
+//  useEffect partikel 
 useEffect(() => {
   if (!isMounted || !canvasRef.current) return
 
@@ -721,13 +720,13 @@ useEffect(() => {
             <CyberGlassCard
               href="/informasi"
               title="Tentang Kami"
-              icon={<Bell className="w-6 h-6" />}
+              icon={<Info className="w-6 h-6" />}  
               desc="Informasi resmi tentang kami"
               gradient="from-amber-500 to-orange-600"
               index={5}
               activeHover={activeHover}
               setActiveHover={setActiveHover}
-              features={["Notifikasi Push", "Arsip Lengkap", "Priority System"]}
+              features={["Profil Kelas", "Visi & Misi", "Kontak Informasi"]}
               darkMode={darkMode}
             />
           </motion.div>
@@ -790,7 +789,7 @@ useEffect(() => {
             <MobileCyberCard
               href="/informasi"
               title="Tetang kami"
-              icon={<Bot className="w-4 h-4" />}
+              icon={<Info className="w-4 h-4" />}
               gradient="from-amber-500 to-orange-600"
               index={5}
               darkMode={darkMode}

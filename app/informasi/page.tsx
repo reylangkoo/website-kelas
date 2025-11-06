@@ -177,11 +177,10 @@ export default function Informasi() {
       name: "Rey Langko",
       role: "Full Stack Developer",
       description: "Pengembang utama sistem portal kelas PI23A",
-      avatar: "/assets/rey.jpg",
-      icon: <Code className="w-3 h-3" />
+      avatar: "/assets/hyuga.jpg",
     },
     {
-      name: "Kepala Prodi",
+      name: "Ibu Diana Fallo, S.Kom., MT",
       role: "Academic Leader",
       description: "Pemimpin program studi Pendidikan Informatika",
       avatar: "/assets/kaprodi.png",

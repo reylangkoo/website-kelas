@@ -169,8 +169,8 @@ export default function Dashboard() {
     })
   }, [])
 
-// Animated Background Effect - FIXED FOR ALL DEVICES
 // Animated Background Effect - FIXED FOR SCROLL
+// GANTI useEffect partikel di dashboard dengan ini:
 useEffect(() => {
   if (!isMounted || !canvasRef.current) return
 
@@ -190,17 +190,17 @@ useEffect(() => {
   const colors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
   let animationId: number
   
-  // GUNAKAN FULL DOCUMENT SIZE BUKAN VIEWPORT
-  let fullWidth = document.documentElement.scrollWidth
-  let fullHeight = document.documentElement.scrollHeight
+  // GUNAKAN VIEWPORT SIZE BUKAN DOCUMENT SIZE
+  let viewportWidth = window.innerWidth
+  let viewportHeight = window.innerHeight
 
-  // INIT PARTIKEL BARU - DISTRIBUSI DI SELURUH DOCUMENT
+  // INIT PARTIKEL - HANYA DI VIEWPORT
   const initParticles = () => {
     particles = []
     for (let i = 0; i < 80; i++) {
       particles.push({
-        x: Math.random() * fullWidth,
-        y: Math.random() * fullHeight,
+        x: Math.random() * viewportWidth,
+        y: Math.random() * viewportHeight,
         size: (Math.random() * 2 + 1),
         speedX: (Math.random() - 0.5) * 0.5,
         speedY: (Math.random() - 0.5) * 0.5,
@@ -209,19 +209,19 @@ useEffect(() => {
     }
   }
 
-  // SET CANVAS SIZE - COVER SELURUH PAGE
+  // SET CANVAS SIZE - VIEWPORT SAJA
   const setCanvasSize = () => {
     const dpr = window.devicePixelRatio || 1
-    fullWidth = document.documentElement.scrollWidth
-    fullHeight = document.documentElement.scrollHeight
+    viewportWidth = window.innerWidth
+    viewportHeight = window.innerHeight
     
-    canvas.width = fullWidth * dpr
-    canvas.height = fullHeight * dpr
+    canvas.width = viewportWidth * dpr
+    canvas.height = viewportHeight * dpr
     ctx.scale(dpr, dpr)
-    canvas.style.width = `${fullWidth}px`
-    canvas.style.height = `${fullHeight}px`
+    canvas.style.width = `${viewportWidth}px`
+    canvas.style.height = `${viewportHeight}px`
     
-    // POSITION FIXED COVER
+    // POSITION FIXED COVER VIEWPORT
     canvas.style.position = 'fixed'
     canvas.style.top = '0'
     canvas.style.left = '0'
@@ -235,64 +235,41 @@ useEffect(() => {
   const animate = () => {
     // Clear entire canvas
     ctx.fillStyle = '#0f172a'
-    ctx.fillRect(0, 0, fullWidth, fullHeight)
-
-    // Get current scroll position
-    const scrollX = window.scrollX
-    const scrollY = window.scrollY
-    const visibleWidth = window.innerWidth
-    const visibleHeight = window.innerHeight
+    ctx.fillRect(0, 0, viewportWidth, viewportHeight)
 
     particles.forEach((particle, index) => {
-      // Update position
+      // Update position - TANPA PENGARUH SCROLL
       particle.x += particle.speedX
       particle.y += particle.speedY
 
-      // Boundary checking dengan FULL DOCUMENT size
-      if (particle.x > fullWidth) particle.x = 0
-      else if (particle.x < 0) particle.x = fullWidth
-      if (particle.y > fullHeight) particle.y = 0
-      else if (particle.y < 0) particle.y = fullHeight
+      // Boundary checking - HANYA DI VIEWPORT
+      if (particle.x > viewportWidth) particle.x = 0
+      else if (particle.x < 0) particle.x = viewportWidth
+      if (particle.y > viewportHeight) particle.y = 0
+      else if (particle.y < 0) particle.y = viewportHeight
 
-      // Hanya render partikel yang ada di area visible + buffer
-      const inViewport = 
-        particle.x >= scrollX - 200 && 
-        particle.x <= scrollX + visibleWidth + 200 &&
-        particle.y >= scrollY - 200 && 
-        particle.y <= scrollY + visibleHeight + 200
+      // Draw particle - SEMUA PARTIKEL DI-RENDER
+      ctx.beginPath()
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+      ctx.fillStyle = particle.color
+      ctx.globalAlpha = 0.8
+      ctx.fill()
 
-      if (inViewport) {
-        // Draw particle
-        ctx.beginPath()
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-        ctx.fillStyle = particle.color
-        ctx.globalAlpha = 0.8
-        ctx.fill()
+      // Connect particles - untuk yang dekat saja
+      for (let j = index + 1; j < particles.length; j++) {
+        const otherParticle = particles[j]
+        const dx = particle.x - otherParticle.x
+        const dy = particle.y - otherParticle.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
 
-        // Connect particles - hanya untuk yang dekat dan visible
-        for (let j = index + 1; j < particles.length; j++) {
-          const otherParticle = particles[j]
-          const otherInViewport = 
-            otherParticle.x >= scrollX - 200 && 
-            otherParticle.x <= scrollX + visibleWidth + 200 &&
-            otherParticle.y >= scrollY - 200 && 
-            otherParticle.y <= scrollY + visibleHeight + 200
-
-          if (otherInViewport) {
-            const dx = particle.x - otherParticle.x
-            const dy = particle.y - otherParticle.y
-            const distance = Math.sqrt(dx * dx + dy * dy)
-
-            if (distance < 100) {
-              ctx.beginPath()
-              ctx.strokeStyle = particle.color
-              ctx.globalAlpha = Math.max(0.1, 0.6 * (1 - distance / 100))
-              ctx.lineWidth = 1.5
-              ctx.moveTo(particle.x, particle.y)
-              ctx.lineTo(otherParticle.x, otherParticle.y)
-              ctx.stroke()
-            }
-          }
+        if (distance < 100) {
+          ctx.beginPath()
+          ctx.strokeStyle = particle.color
+          ctx.globalAlpha = Math.max(0.1, 0.6 * (1 - distance / 100))
+          ctx.lineWidth = 1.5
+          ctx.moveTo(particle.x, particle.y)
+          ctx.lineTo(otherParticle.x, otherParticle.y)
+          ctx.stroke()
         }
       }
 
@@ -315,13 +292,6 @@ useEffect(() => {
     animate()
   }
 
-  // Juga handle scroll events untuk performa
-  // eslint-disable-next-line prefer-const
-  let scrollTimeout: NodeJS.Timeout | null = null
-const handleScroll = () => {
-  if (scrollTimeout) clearTimeout(scrollTimeout)
-}
-
   let resizeTimeout: NodeJS.Timeout
   const debouncedResize = () => {
     clearTimeout(resizeTimeout)
@@ -329,16 +299,13 @@ const handleScroll = () => {
   }
 
   window.addEventListener('resize', debouncedResize)
-  window.addEventListener('scroll', handleScroll)
   
   return () => {
     if (animationId) {
       cancelAnimationFrame(animationId)
     }
     window.removeEventListener('resize', debouncedResize)
-    window.removeEventListener('scroll', handleScroll)
     clearTimeout(resizeTimeout)
-    if (scrollTimeout) clearTimeout(scrollTimeout)
   }
 }, [isMounted])
 
@@ -752,10 +719,10 @@ const handleScroll = () => {
               darkMode={darkMode}
             />
             <CyberGlassCard
-              href="/ai-chat"
-              title="Asisten PI"
+              href="/informasi"
+              title="Tentang Kami"
               icon={<Bell className="w-6 h-6" />}
-              desc="Informasi terbaru dan pemberitahuan"
+              desc="Informasi resmi tentang kami"
               gradient="from-amber-500 to-orange-600"
               index={5}
               activeHover={activeHover}
@@ -821,8 +788,8 @@ const handleScroll = () => {
               darkMode={darkMode}
             />
             <MobileCyberCard
-              href="/ai-chat"
-              title="Asisten PI"
+              href="/informasi"
+              title="Tetang kami"
               icon={<Bot className="w-4 h-4" />}
               gradient="from-amber-500 to-orange-600"
               index={5}

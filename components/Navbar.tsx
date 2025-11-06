@@ -82,7 +82,7 @@ export default function Navbar() {
               whileHover={{ opacity: 1 }}
               className="text-xs text-cyan-400/70 font-light tracking-wider"
             >
-              CYBER PORTAL
+              Universitas Citra Bangsa
             </motion.span>
           </div>
 

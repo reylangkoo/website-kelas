@@ -184,7 +184,7 @@ export default function Informasi() {
       name: "Kepala Prodi",
       role: "Academic Leader",
       description: "Pemimpin program studi Pendidikan Informatika",
-      avatar: "/assets/kaprodi.jpg",
+      avatar: "/assets/kaprodi.png",
       icon: <Crown className="w-3 h-3" />
     },
     {
